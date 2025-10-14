@@ -1,0 +1,1 @@
+﻿$data = Get-WmiObject -computername . -query "select LastModified from cim_datafile where name = 'C:\\DesktopSupportTools\\TaniumOutput\\ClientAuthenticationCerts.json' "

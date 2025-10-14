@@ -1,0 +1,43 @@
+# PowerShell
+*.ps1xml
+pester-tests.xml
+
+# Build artifacts
+bin/
+obj/
+*.dll
+*.exe
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+*.tmp
+*.temp
+~$*
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# VS Code
+.vscode/settings.json
+*.code-workspace
+
+# Credentials and secrets
+*credential*
+*password*
+*secret*
+*.pfx
+*.p12
+*.key
+
+# Test results
+TestResults.xml
+coverage.xml
+
+# Module cache
+PSGetModuleInfo.xml
