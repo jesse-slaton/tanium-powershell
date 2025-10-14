@@ -1,0 +1,35 @@
+# External Repositories - Manual Action Required
+
+This file lists external repositories that need to be forked/starred on GitHub.
+
+Generated: 2025-10-14 16:43:05
+
+## Action Items
+
+1. Fork the following repositories to your GitHub account
+2. Star the original repositories for updates
+3. Document any local modifications in your forks
+
+## Repositories
+
+### Port_Authority
+- Original: (Check EXTERNAL_DEPENDENCIES.md for URL)
+- Status: [ ] Forked [ ] Starred
+- Local Path: D:\dev\repos\Port_Authority
+
+### Windows-Secure-Host-Baseline
+- Original: https://github.com/nsacyber/Windows-Secure-Host-Baseline
+- Status: [ ] Forked [ ] Starred
+- Local Path: D:\dev\repos\Windows-Secure-Host-Baseline
+
+## Required PowerShell Modules
+
+See EXTERNAL_DEPENDENCIES.md for full list of required modules:
+- ActiveDirectory
+- LidarrPS
+- AWSPowerShell
+- TaniumClient
+- GroupPolicy
+- PSWindowsUpdate
+
+Install with: Install-Module <ModuleName> -Scope CurrentUser
