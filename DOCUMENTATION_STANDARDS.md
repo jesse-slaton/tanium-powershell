@@ -411,48 +411,115 @@ catch {
 }
 ```
 
-### Rate Limiting Pattern
+### Rate Limiting Pattern (Platform Packages Only)
 
-For packages that are resource-intensive or generate network traffic, implement **rate limiting** using registry keys:
+**Important**: Rate limiting via registry is for **Platform Packages** only. Tanium Deploy Packages should use Tanium Deploy's built-in rate limiting features instead.
 
-**Recommended Registry Location**: `HKLM:\SOFTWARE\WOW6432Node\Tanium\Tanium Client\Sensor Data\<ScriptName>`
+For Platform Packages that are resource-intensive or generate network traffic, implement **rate limiting** using registry keys to prevent excessive execution.
+
+**Registry Location** (accounts for OS bitness):
+- **64-bit Windows**: `SOFTWARE\WOW6432Node\Tanium\Tanium Client\Sensor Data\RateLimits\<PackageName>`
+- **32-bit Windows**: `SOFTWARE\Tanium\Tanium Client\Sensor Data\RateLimits\<PackageName>`
+
+*Note: Tanium Client is a 32-bit application, so on 64-bit Windows it registers under WOW6432Node.*
+
+**Registry Values**:
+- **ExpiresAt** (String): RFC822 format with Zulu time - "Mon, 05 Jan 2015 15:17:59 +0000"
+- **SetAt** (String): RFC822 format when rate limit was set
+
+**Important**: All registry access must use `[Microsoft.Win32.RegistryKey]` class, not PowerShell registry providers.
+
+#### Rate Limiting Components
+
+The rate limiting system consists of three components:
+
+1. **Helper Functions**: Inline functions for copy-paste into packages (`Packages/Templates/RateLimiting-Helpers.ps1`)
+2. **Enumeration Sensor**: Lists all rate limits with expiration status (`Sensors/Get-RateLimitStatus.ps1`)
+3. **Cleanup Package**: Removes expired rate limit entries (`Packages/Maintenance/Remove-ExpiredRateLimits-Package.ps1`)
 
 #### Rate Limiting Implementation
+
+Use the helper functions from `Packages/Templates/RateLimiting-Helpers.ps1` by copying them directly into your package script:
 
 ```powershell
 # Script: Resource-Intensive-Package.ps1
 # Implements rate limiting to execute no more than once per week
 
-$rateLimitKey = "HKLM:\SOFTWARE\WOW6432Node\Tanium\Tanium Client\Sensor Data\MyPackage"
-$rateLimitDays = 7  # Only run once per week
+# ============================================================================
+# RATE LIMITING HELPER FUNCTIONS (Copy from RateLimiting-Helpers.ps1)
+# ============================================================================
 
-# Check last execution time
-if (Test-Path $rateLimitKey) {
-    $lastRun = (Get-ItemProperty -Path $rateLimitKey -Name LastRun -ErrorAction SilentlyContinue).LastRun
-
-    if ($lastRun) {
-        $lastRunDate = [DateTime]::Parse($lastRun)
-        $daysSinceLastRun = (New-TimeSpan -Start $lastRunDate -End (Get-Date)).Days
-
-        if ($daysSinceLastRun -lt $rateLimitDays) {
-            Write-Output "Rate limited: Last run was $daysSinceLastRun days ago (limit: $rateLimitDays days)"
-            Exit 0  # Exit gracefully without performing work
-        }
+function Get-RateLimitRegistryPath {
+    param([string]$PackageName)
+    if ([Environment]::Is64BitOperatingSystem) {
+        "SOFTWARE\WOW6432Node\Tanium\Tanium Client\Sensor Data\RateLimits\$PackageName"
+    } else {
+        "SOFTWARE\Tanium\Tanium Client\Sensor Data\RateLimits\$PackageName"
     }
 }
 
-# Perform resource-intensive operation
-Write-Output "Executing resource-intensive operation..."
+function Test-RateLimitExpired {
+    param([string]$PackageName)
 
-# ... package logic here ...
+    $regPath = Get-RateLimitRegistryPath $PackageName
+    $regKey = [Microsoft.Win32.Registry]::LocalMachine.OpenSubKey($regPath, $false)
 
-# Update last run timestamp
-if (-not (Test-Path $rateLimitKey)) {
-    New-Item -Path $rateLimitKey -Force | Out-Null
+    if ($null -eq $regKey) { return $true }
+
+    try {
+        $expiresAt = $regKey.GetValue("ExpiresAt")
+        if ($null -eq $expiresAt) { return $true }
+
+        $expDate = [DateTime]::ParseExact($expiresAt, "ddd, dd MMM yyyy HH:mm:ss zzz", [System.Globalization.CultureInfo]::InvariantCulture)
+        return ([DateTime]::UtcNow -ge $expDate)
+    }
+    catch {
+        return $true
+    }
+    finally {
+        if ($null -ne $regKey) { $regKey.Close() }
+    }
 }
-Set-ItemProperty -Path $rateLimitKey -Name LastRun -Value (Get-Date).ToString('o')
 
-Write-Output "Operation completed. Next run allowed after $(Get-Date).AddDays($rateLimitDays))"
+function Set-RateLimit {
+    param([string]$PackageName, [int]$Hours = 24)
+
+    $regPath = Get-RateLimitRegistryPath $PackageName
+    $regKey = [Microsoft.Win32.Registry]::LocalMachine.OpenSubKey($regPath, $true)
+
+    if ($null -eq $regKey) {
+        $regKey = [Microsoft.Win32.Registry]::LocalMachine.CreateSubKey($regPath)
+    }
+
+    try {
+        $expires = (Get-Date).ToUniversalTime().AddHours($Hours)
+        $expiresRFC822 = $expires.ToString("ddd, dd MMM yyyy HH:mm:ss +0000", [System.Globalization.CultureInfo]::InvariantCulture)
+        $setAtRFC822 = (Get-Date).ToUniversalTime().ToString("ddd, dd MMM yyyy HH:mm:ss +0000", [System.Globalization.CultureInfo]::InvariantCulture)
+
+        $regKey.SetValue("ExpiresAt", $expiresRFC822, [Microsoft.Win32.RegistryValueKind]::String)
+        $regKey.SetValue("SetAt", $setAtRFC822, [Microsoft.Win32.RegistryValueKind]::String)
+    }
+    finally {
+        if ($null -ne $regKey) { $regKey.Close() }
+    }
+}
+
+# ============================================================================
+# PACKAGE LOGIC WITH RATE LIMITING
+# ============================================================================
+
+# Check if rate limit has expired
+if (Test-RateLimitExpired "MyPackage") {
+    Write-Output "Executing resource-intensive operation..."
+
+    # ... package logic here ...
+
+    # Set rate limit for 7 days (168 hours)
+    Set-RateLimit "MyPackage" -Hours 168
+    Write-Output "Completed. Rate limited for 7 days."
+} else {
+    Write-Output "Rate limited. Run skipped."
+}
 ```
 
 #### When to Use Rate Limiting
@@ -464,7 +531,14 @@ Implement rate limiting for packages that:
 - **Take significant time**: Operations >30 seconds
 - **Should run periodically**: Weekly/monthly maintenance tasks
 
-**Note**: The registry path `HKLM:\SOFTWARE\WOW6432Node\Tanium\Tanium Client\Sensor Data` is recommended but requires verification. See related issue for research and standardization.
+#### Managing Rate Limits
+
+**Enumerate Rate Limits**: Use the `Get-RateLimitStatus.ps1` sensor to list all configured rate limits:
+```
+PackageName1|Mon, 05 Jan 2025 15:17:59 +0000|False|PackageName2|Mon, 01 Jan 2025 10:00:00 +0000|True
+```
+
+**Cleanup Expired Entries**: Run the `Remove-ExpiredRateLimits-Package.ps1` package periodically to remove expired rate limit entries and prevent registry bloat.
 
 ## MSI Idempotency Considerations
 
