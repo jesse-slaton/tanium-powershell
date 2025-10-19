@@ -128,6 +128,13 @@ $modulePath = Join-Path $PSScriptRoot "..\..\..\Modules\TaniumDeployPackage"
 if (Test-Path $modulePath) {
     Import-Module $modulePath -Force
     Write-Verbose "Imported TaniumDeployPackage module"
+
+    # Dot-source private functions that we need
+    $getInstallerVersionPath = Join-Path $modulePath "Private\Get-InstallerVersion.ps1"
+    if (Test-Path $getInstallerVersionPath) {
+        . $getInstallerVersionPath
+        Write-Verbose "Loaded Get-InstallerVersion function"
+    }
 } else {
     Write-Error "TaniumDeployPackage module not found at: $modulePath"
     exit 1
@@ -442,28 +449,22 @@ try {
                 $bundles = $mainMsixFiles | Where-Object { $_.Extension -in @('.msixbundle', '.appxbundle') }
 
                 if ($bundles) {
-                    # Extract version from filename: PackageName_Version_...
-                    # Sort by version (newest first)
-                    $bundlesWithVersion = $bundles | ForEach-Object {
-                        if ($_.Name -match '_(\d+\.\d+\.\d+\.\d+)_') {
-                            [PSCustomObject]@{
-                                File = $_
-                                Version = [Version]$matches[1]
-                                Name = $_.Name
-                            }
-                        }
-                    } | Where-Object { $_ -ne $null } | Sort-Object Version -Descending
+                    # Use newest/largest bundle
+                    $msixMainPackage = ($bundles | Sort-Object Length -Descending | Select-Object -First 1).Name
+                    Write-Verbose "Main package bundle: $msixMainPackage"
 
-                    if ($bundlesWithVersion.Count -gt 0) {
-                        $msixMainPackage = $bundlesWithVersion[0].Name
-                        $packageVersion = $bundlesWithVersion[0].Version.ToString()
+                    # Extract version directly from the MSIX bundle file
+                    $bundlePath = Join-Path $packageDir $msixMainPackage
+                    $extractedVersion = Get-InstallerVersion -InstallerPath $bundlePath
+
+                    if ($extractedVersion) {
+                        $packageVersion = $extractedVersion
 
                         # Update packageInfo with extracted version
                         $oldVersion = $packageInfo.Version
                         $packageInfo.Version = $packageVersion
 
-                        Write-Host "Detected MSIX package version: $packageVersion" -ForegroundColor Cyan
-                        Write-Verbose "Main package (newest bundle): $msixMainPackage"
+                        Write-Host "Detected MSIX package version from bundle: $packageVersion" -ForegroundColor Cyan
 
                         # If version changed, we need to rename the package directory
                         if ($oldVersion -ne $packageVersion) {
@@ -474,12 +475,14 @@ try {
                                 Write-Host "Updating package directory to use detected version..." -ForegroundColor Cyan
                                 Write-Verbose "Moving from $packageDir to $newPackageDir"
 
-                                # Create new directory and move files
-                                New-Item -Path $newPackageDir -ItemType Directory -Force | Out-Null
-                                Get-ChildItem -Path $packageDir -Recurse | Move-Item -Destination $newPackageDir -Force
+                                # Create parent directory if needed
+                                $parentDir = Split-Path $newPackageDir -Parent
+                                if (-not (Test-Path $parentDir)) {
+                                    New-Item -Path $parentDir -ItemType Directory -Force | Out-Null
+                                }
 
-                                # Remove old directory
-                                Remove-Item -Path $packageDir -Recurse -Force
+                                # Move entire directory
+                                Move-Item -Path $packageDir -Destination $newPackageDir -Force
 
                                 # Update packageDir variable
                                 $packageDir = $newPackageDir
@@ -487,9 +490,7 @@ try {
                             }
                         }
                     } else {
-                        # Fallback: use largest bundle
-                        $msixMainPackage = ($bundles | Sort-Object Length -Descending | Select-Object -First 1).Name
-                        Write-Verbose "Main package (largest bundle, version unknown): $msixMainPackage"
+                        Write-Warning "Could not extract version from MSIX bundle"
                     }
                 } else {
                     # No bundles, use largest file as main package
