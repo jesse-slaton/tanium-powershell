@@ -51,7 +51,7 @@ function New-MsixInstallScript {
         [string]$Scope = 'user',
 
         [Parameter()]
-        [bool]$AllInOne = $true
+        [bool]$AllInOne = $false
     )
 
     $sanitizedName = $PackageName -replace '[\\/:*?"<>|]', '_'
