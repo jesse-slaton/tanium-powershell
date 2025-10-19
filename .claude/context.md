@@ -47,6 +47,36 @@ The repository owner requires assistance with:
 5. Use feature branches for changes
 6. Documentation changes go through the same review process as code
 
+## Coding Standards
+
+### Naming Conventions
+- **Functions/Cmdlets**: PascalCase (e.g., `Get-UserData`, `Write-Log`)
+- **Parameters**: camelCase (e.g., `$userName`, `$logPath`)
+- **Variables**: camelCase (e.g., `$myVariable`, `$itemCount`)
+
+### Output and Logging
+- **Avoid Write-Host** in non-TUI scripts - use appropriate cmdlets:
+  - `Write-Output` for pipeline data
+  - `Write-Verbose` for detailed operation info
+  - `Write-Information` for informational messages
+  - `Write-Warning` for warnings
+  - `Write-Error` for errors
+- **Exception**: Write-Host is acceptable for TUIs and interactive menus
+- **Use Write-Log function** for logging:
+  - Custom Write-Log function should be used extensively
+  - Function must create log path if it doesn't exist
+  - Implement consistent logging across all scripts
+
+### PSScriptAnalyzer
+- All scripts must pass PSScriptAnalyzer with no errors
+- Fix warnings where practical
+- Document any intentional rule suppressions
+
+## Git Commit Preferences
+- **NEVER** include co-authored attributions (no "Co-Authored-By: Claude" lines)
+- Keep commit messages concise and descriptive
+- Reference issue numbers when applicable
+
 ## Related Repository
 - **powershell-utilities**: Separate repo with its own context (see `.claude/context.md` there)
 

@@ -1,0 +1,40 @@
+{
+  "installerType": "inno",
+  "description": "Inno Setup installer defaults",
+  "install": {
+    "switches": "/VERYSILENT /SUPPRESSMSGBOXES /NORESTART /SP-",
+    "switchesPerUser": "/VERYSILENT /SUPPRESSMSGBOXES /NORESTART /SP- /CURRENTUSER",
+    "switchesPerMachine": "/VERYSILENT /SUPPRESSMSGBOXES /NORESTART /SP- /ALLUSERS",
+    "switchesWithLog": "/VERYSILENT /SUPPRESSMSGBOXES /NORESTART /SP- /LOG=\"{LogPath}\"",
+    "timeout": 1200,
+    "successCodes": [0],
+    "command": "\"{InstallerPath}\""
+  },
+  "uninstall": {
+    "switches": "/VERYSILENT /SUPPRESSMSGBOXES /NORESTART",
+    "timeout": 900,
+    "successCodes": [0],
+    "command": "\"{UninstallPath}\"",
+    "notes": "Uninstall path typically found in registry: HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\{AppId}"
+  },
+  "update": {
+    "behavior": "install",
+    "notes": "Inno Setup typically handles upgrades automatically during installation"
+  },
+  "requirements": {
+    "diskSpaceMultiplier": 3,
+    "memoryMB": 256
+  },
+  "detection": {
+    "method": "registry",
+    "path": "HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\{AppId}",
+    "pathPerUser": "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\{AppId}",
+    "property": "DisplayVersion"
+  },
+  "notes": [
+    "/SILENT shows progress, /VERYSILENT does not",
+    "/SP- suppresses 'This will install... Do you wish to continue?' prompt",
+    "/SUPPRESSMSGBOXES suppresses message boxes",
+    "/CURRENTUSER and /ALLUSERS may not be supported by all Inno Setup installers"
+  ]
+}

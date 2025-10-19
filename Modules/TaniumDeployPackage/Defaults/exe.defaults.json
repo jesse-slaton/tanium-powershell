@@ -1,0 +1,44 @@
+{
+  "installerType": "exe",
+  "description": "Generic EXE installer defaults (use more specific type if known)",
+  "install": {
+    "switches": "/S /silent /quiet",
+    "switchesAlt1": "-s -silent -quiet",
+    "switchesAlt2": "--silent --quiet",
+    "timeout": 1200,
+    "successCodes": [0],
+    "command": "\"{InstallerPath}\"",
+    "notes": "Try common silent switches - actual switches vary by installer"
+  },
+  "uninstall": {
+    "switches": "/S /silent /quiet",
+    "switchesAlt1": "-s -silent -quiet /uninstall",
+    "switchesAlt2": "--silent --quiet --uninstall",
+    "timeout": 900,
+    "successCodes": [0],
+    "command": "\"{UninstallPath}\"",
+    "notes": "Uninstall method varies greatly - check registry or vendor documentation"
+  },
+  "update": {
+    "behavior": "varies",
+    "notes": "Update behavior depends on specific installer - may require uninstall first"
+  },
+  "requirements": {
+    "diskSpaceMultiplier": 3,
+    "memoryMB": 256
+  },
+  "detection": {
+    "method": "registry",
+    "path": "HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\{AppId}",
+    "pathPerUser": "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\{AppId}",
+    "pathAlt": "HKLM:\\SOFTWARE\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\{AppId}",
+    "property": "DisplayVersion"
+  },
+  "notes": [
+    "Generic EXE installers have no standard switches",
+    "Common silent switches: /S, /silent, /quiet, -s, --silent, /qn",
+    "Check vendor documentation or use tools like Universal Silent Switch Finder",
+    "Some installers require specific switch combinations",
+    "Test thoroughly before deploying"
+  ]
+}
