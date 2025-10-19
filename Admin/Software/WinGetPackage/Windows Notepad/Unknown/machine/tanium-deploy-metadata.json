@@ -1,0 +1,37 @@
+﻿{
+    "productVersion":  "Unknown",
+    "osRequirements":  {
+                           "productName":  "Windows 10",
+                           "editionId":  null,
+                           "build":  null
+                       },
+    "additionalDetails":  "https://github.com/microsoft/winget-pkgs",
+    "installOperation":  {
+                             "command":  "powershell.exe -ExecutionPolicy Bypass -File \".\\Install-Windows Notepad.ps1\"",
+                             "timeout":  1200,
+                             "successCodes":  [
+                                                  0
+                                              ]
+                         },
+    "installRequirements":  "Registry Path exists \"HKLM\\Path\\Does\\Not\\Exist\"",
+    "diskSpaceMB":  500,
+    "memoryMB":  256,
+    "productName":  "Windows Notepad",
+    "downloadUrl":  null,
+    "architecture":  "x64",
+    "removeOperation":  {
+                            "command":  "powershell.exe -ExecutionPolicy Bypass -File \".\\Remove-Windows Notepad.ps1\"",
+                            "timeout":  900,
+                            "successCodes":  [
+                                                 0
+                                             ]
+                        },
+    "selfService":  {
+                        "icon":  null,
+                        "name":  "Windows Notepad x64"
+                    },
+    "installVerification":  "Registry Value \"HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\9MSMLRH6LZF3\\DisplayVersion\" \u003e= \"Unknown\"",
+    "vendor":  "Microsoft Corporation",
+    "updateDetection":  "Registry Value \"HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\9MSMLRH6LZF3\\DisplayVersion\" \u003e= \"Unknown\"",
+    "sha256":  null
+}

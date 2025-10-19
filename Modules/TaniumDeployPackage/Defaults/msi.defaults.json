@@ -1,0 +1,41 @@
+{
+  "installerType": "msi",
+  "description": "Windows Installer (MSI) package defaults",
+  "install": {
+    "switches": "/i \"{InstallerPath}\" /qn /norestart",
+    "switchesPerUser": "/i \"{InstallerPath}\" /qn /norestart ALLUSERS=2 MSIINSTALLPERUSER=1",
+    "switchesPerMachine": "/i \"{InstallerPath}\" /qn /norestart ALLUSERS=1",
+    "timeout": 1800,
+    "successCodes": [0, 1641, 3010],
+    "command": "msiexec.exe"
+  },
+  "uninstall": {
+    "switches": "/x \"{ProductCode}\" /qn /norestart",
+    "switchesAlt": "/x \"{InstallerPath}\" /qn /norestart",
+    "timeout": 1200,
+    "successCodes": [0, 1605, 1641, 3010],
+    "command": "msiexec.exe"
+  },
+  "update": {
+    "switches": "/i \"{InstallerPath}\" /qn /norestart REINSTALL=ALL REINSTALLMODE=vomus",
+    "timeout": 1800,
+    "successCodes": [0, 1641, 3010],
+    "command": "msiexec.exe"
+  },
+  "requirements": {
+    "diskSpaceMultiplier": 3,
+    "memoryMB": 512
+  },
+  "detection": {
+    "method": "wql",
+    "query": "SELECT * FROM Win32_Product WHERE IdentifyingNumber='{ProductCode}'",
+    "queryAlt": "SELECT * FROM Win32Reg_AddRemovePrograms WHERE ProdID='{ProductCode}'"
+  },
+  "notes": [
+    "ProductCode can be extracted from MSI using: msiexec /i <file.msi> /qn /norestart /log install.log",
+    "Or use: Get-AppLockerFileInformation -Path <file.msi> | Select-Object -ExpandProperty Publisher",
+    "Success code 1641 = restart initiated",
+    "Success code 3010 = restart required",
+    "Success code 1605 = product not found (uninstall only)"
+  ]
+}

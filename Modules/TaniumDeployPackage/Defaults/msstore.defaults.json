@@ -1,0 +1,48 @@
+{
+  "installerType": "msstore",
+  "description": "Microsoft Store app defaults",
+  "install": {
+    "switches": "",
+    "timeout": 1800,
+    "successCodes": [0],
+    "command": "Add-AppxPackage",
+    "method": "powershell",
+    "notes": "Microsoft Store apps use AppX/MSIX deployment, not traditional installers"
+  },
+  "uninstall": {
+    "switches": "",
+    "timeout": 900,
+    "successCodes": [0],
+    "command": "Remove-AppxPackage",
+    "method": "powershell",
+    "query": "Get-AppxPackage -Name {PackageFamilyName}"
+  },
+  "update": {
+    "method": "store",
+    "notes": "Updates typically handled automatically by Microsoft Store"
+  },
+  "requirements": {
+    "diskSpaceMultiplier": 2,
+    "memoryMB": 512,
+    "osMinimum": "Windows 10"
+  },
+  "detection": {
+    "method": "appx",
+    "query": "Get-AppxPackage -Name {PackageFamilyName} | Where-Object {$_.Version -ge '{MinVersion}'}",
+    "property": "Version"
+  },
+  "deployment": {
+    "requiresLicense": false,
+    "requiresInternetForInitialInstall": true,
+    "supportsOfflineDeployment": true,
+    "offlineMethod": "Business Store for Education offline packages"
+  },
+  "notes": [
+    "Microsoft Store apps use different installation mechanism than traditional Win32 apps",
+    "Requires Windows 10+ with Microsoft Store enabled",
+    "Can deploy offline via Business Store for Education",
+    "Uses PackageFamilyName for identification, not traditional ProductCode",
+    "Some store apps may require user account login",
+    "Consider using winget install --source msstore for deployment"
+  ]
+}

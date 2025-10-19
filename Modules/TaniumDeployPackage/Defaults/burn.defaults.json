@@ -1,0 +1,42 @@
+{
+  "installerType": "burn",
+  "description": "WiX Burn bootstrapper defaults",
+  "install": {
+    "switches": "/quiet /norestart",
+    "switchesPerUser": "/quiet /norestart /install",
+    "switchesPerMachine": "/quiet /norestart /install",
+    "switchesWithLog": "/quiet /norestart /log \"{LogPath}\"",
+    "timeout": 1800,
+    "successCodes": [0, 3010],
+    "command": "\"{InstallerPath}\""
+  },
+  "uninstall": {
+    "switches": "/quiet /norestart /uninstall",
+    "timeout": 1200,
+    "successCodes": [0, 3010],
+    "command": "\"{UninstallPath}\"",
+    "commandAlt": "\"{InstallerPath}\""
+  },
+  "update": {
+    "switches": "/quiet /norestart /update",
+    "timeout": 1800,
+    "successCodes": [0, 3010],
+    "command": "\"{InstallerPath}\""
+  },
+  "requirements": {
+    "diskSpaceMultiplier": 3,
+    "memoryMB": 512
+  },
+  "detection": {
+    "method": "registry",
+    "path": "HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\{BundleUpgradeCode}",
+    "property": "DisplayVersion"
+  },
+  "notes": [
+    "Burn is a WiX bootstrapper that can contain multiple MSI packages",
+    "/quiet provides silent installation",
+    "/passive shows progress but no prompts",
+    "Success code 3010 = restart required",
+    "Some Burn installers may use different switch syntax"
+  ]
+}

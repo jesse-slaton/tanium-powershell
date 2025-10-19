@@ -1,0 +1,37 @@
+﻿{
+    "productVersion":  "25.01",
+    "osRequirements":  {
+                           "productName":  "Windows 10",
+                           "editionId":  null,
+                           "build":  null
+                       },
+    "additionalDetails":  "https://7-zip.org/",
+    "installOperation":  {
+                             "command":  "powershell.exe -ExecutionPolicy Bypass -File \".\\Install-7-Zip.ps1\"",
+                             "timeout":  1200,
+                             "successCodes":  [
+                                                  0
+                                              ]
+                         },
+    "installRequirements":  "Registry Path exists \"HKLM\\Path\\Does\\Not\\Exist\"",
+    "diskSpaceMB":  100,
+    "memoryMB":  256,
+    "productName":  "7-Zip",
+    "downloadUrl":  "https://7-zip.org/a/7z2501-x64.exe",
+    "architecture":  "x64",
+    "removeOperation":  {
+                            "command":  "powershell.exe -ExecutionPolicy Bypass -File \".\\Remove-7-Zip.ps1\"",
+                            "timeout":  900,
+                            "successCodes":  [
+                                                 0
+                                             ]
+                        },
+    "selfService":  {
+                        "icon":  null,
+                        "name":  "7-Zip x64"
+                    },
+    "installVerification":  "Registry Value \"HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\7zip.7zip\\DisplayVersion\" \u003e= \"25.01\"",
+    "vendor":  "Igor Pavlov",
+    "updateDetection":  "Registry Value \"HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\7zip.7zip\\DisplayVersion\" \u003e= \"25.01\"",
+    "sha256":  "78afa2a1c773caf3cf7edf62f857d2a8a5da55fb0fff5da416074c0d28b2b55f"
+}

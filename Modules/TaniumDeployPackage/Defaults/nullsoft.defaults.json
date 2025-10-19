@@ -1,0 +1,40 @@
+{
+  "installerType": "nullsoft",
+  "description": "Nullsoft/NSIS installer defaults",
+  "install": {
+    "switches": "/S",
+    "switchesPerUser": "/S /CurrentUser",
+    "switchesPerMachine": "/S /AllUsers",
+    "switchesWithDir": "/S /D={InstallDir}",
+    "timeout": 1200,
+    "successCodes": [0],
+    "command": "\"{InstallerPath}\""
+  },
+  "uninstall": {
+    "switches": "/S",
+    "timeout": 900,
+    "successCodes": [0],
+    "command": "\"{UninstallPath}\"",
+    "notes": "Uninstall path typically: $INSTDIR\\uninstall.exe or found in registry"
+  },
+  "update": {
+    "behavior": "install",
+    "notes": "NSIS typically handles upgrades automatically during installation"
+  },
+  "requirements": {
+    "diskSpaceMultiplier": 3,
+    "memoryMB": 256
+  },
+  "detection": {
+    "method": "registry",
+    "path": "HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\{AppId}",
+    "pathPerUser": "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\{AppId}",
+    "property": "DisplayVersion"
+  },
+  "notes": [
+    "/S switch is case-sensitive (must be uppercase)",
+    "/D= must be the last parameter and path must not be quoted",
+    "/CurrentUser and /AllUsers support depends on installer configuration",
+    "Some NSIS installers may use /SD for silent install with default options"
+  ]
+}
