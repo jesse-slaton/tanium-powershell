@@ -42,21 +42,12 @@ coverage.xml
 # Module cache
 PSGetModuleInfo.xml
 
-# Package generation artifacts
-Admin/Software/WinGetPackage/*/
-!Admin/Software/WinGetPackage/*.ps1
-!Admin/Software/WinGetPackage/*.md
-Admin/Software/UpdateCatalogPackage/*/
-!Admin/Software/UpdateCatalogPackage/*.ps1
-!Admin/Software/UpdateCatalogPackage/*.md
-
-# Downloaded installers and packages
+# Downloaded installers and packages (but keep example packages in git)
 *.msi
 *.msix
 *.msixbundle
 *.appx
 *.appxbundle
 *.cab
-*.zip
 *_License.xml
-*.yaml
+Dependencies/
