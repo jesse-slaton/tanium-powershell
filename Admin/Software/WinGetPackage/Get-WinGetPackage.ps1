@@ -333,8 +333,9 @@ try {
     }
 
     # Generate package directory: <productname>\<version>\<scope>
+    # Note: For MSIX packages, version will be updated after parsing the downloaded bundle
     $sanitizedName = $packageInfo.PackageName -replace '[\\/:*?"<>|]', '_'
-    $sanitizedVersion = $packageInfo.Version -replace '[\\/:*?"<>|]', '_'
+    $sanitizedVersion = if ($packageInfo.Version) { $packageInfo.Version -replace '[\\/:*?"<>|]', '_' } else { "Unknown" }
     $packageDir = Join-Path $OutputPath "$sanitizedName\$sanitizedVersion\$Scope"
 
     Write-Host "`nCreating package directory: $packageDir" -ForegroundColor Cyan
@@ -393,6 +394,9 @@ try {
     # Determine installer type for defaults
     $installerTypeForDefaults = if ($InstallerType) {
         $InstallerType
+    } elseif ($Source -eq 'msstore' -or $PackageId -match '^\d[A-Z0-9]{11}') {
+        # Microsoft Store packages: source is msstore OR packageId format is digit + 11 alphanumeric (e.g., 9MSMLRH6LZF3)
+        'msstore'
     } elseif ($packageInfo.InstallerType) {
         # Normalize WinGet installer types to our defaults
         switch ($packageInfo.InstallerType) {
@@ -420,51 +424,152 @@ try {
     $msixDependencies = @()
 
     if ($DownloadInstallers -and (Test-Path $packageDir)) {
-        # Look for common installer extensions
-        $installerExtensions = @('*.msi', '*.exe', '*.msix', '*.appx', '*.msixbundle', '*.appxbundle')
-        foreach ($ext in $installerExtensions) {
-            $foundFiles = Get-ChildItem -Path $packageDir -Filter $ext -ErrorAction SilentlyContinue
-            if ($foundFiles) {
-                $installerFile = $foundFiles[0].Name
-                Write-Verbose "Found installer file: $installerFile"
-                break
-            }
-        }
-
-        # Check if this is an MSIX/AppX package and parse dependencies
+        # Check if this is an MSIX/AppX package and parse dependencies FIRST
         if ($installerTypeForDefaults -eq 'msstore') {
             $isMsixPackage = $true
             Write-Verbose "Detected MSIX/AppX package type, parsing dependencies..."
 
-            # Find all MSIX/AppX files
-            $allMsixFiles = Get-ChildItem -Path $packageDir -Include '*.msix', '*.appx', '*.msixbundle', '*.appxbundle' -Recurse -ErrorAction SilentlyContinue
+            # Find all MSIX/AppX files in root directory (main packages)
+            $mainMsixFiles = Get-ChildItem -Path $packageDir -Include '*.msix', '*.appx', '*.msixbundle', '*.appxbundle' -ErrorAction SilentlyContinue
 
-            if ($allMsixFiles) {
-                # Main package is typically a bundle or the largest file
-                $bundles = $allMsixFiles | Where-Object { $_.Extension -in @('.msixbundle', '.appxbundle') }
+            if ($mainMsixFiles) {
+                # Main package is typically a bundle - find the NEWEST version
+                $bundles = $mainMsixFiles | Where-Object { $_.Extension -in @('.msixbundle', '.appxbundle') }
 
                 if ($bundles) {
-                    # Use first bundle as main package
-                    $msixMainPackage = $bundles[0].Name
-                    Write-Verbose "Main package (bundle): $msixMainPackage"
+                    # Extract version from filename: PackageName_Version_...
+                    # Sort by version (newest first)
+                    $bundlesWithVersion = $bundles | ForEach-Object {
+                        if ($_.Name -match '_(\d+\.\d+\.\d+\.\d+)_') {
+                            [PSCustomObject]@{
+                                File = $_
+                                Version = [Version]$matches[1]
+                                Name = $_.Name
+                            }
+                        }
+                    } | Where-Object { $_ -ne $null } | Sort-Object Version -Descending
 
-                    # Dependencies are the other files
-                    $msixDependencies = $allMsixFiles | Where-Object { $_.Name -ne $msixMainPackage } | ForEach-Object { $_.Name }
+                    if ($bundlesWithVersion.Count -gt 0) {
+                        $msixMainPackage = $bundlesWithVersion[0].Name
+                        $packageVersion = $bundlesWithVersion[0].Version.ToString()
+
+                        # Update packageInfo with extracted version
+                        $oldVersion = $packageInfo.Version
+                        $packageInfo.Version = $packageVersion
+
+                        Write-Host "Detected MSIX package version: $packageVersion" -ForegroundColor Cyan
+                        Write-Verbose "Main package (newest bundle): $msixMainPackage"
+
+                        # If version changed, we need to rename the package directory
+                        if ($oldVersion -ne $packageVersion) {
+                            $newSanitizedVersion = $packageVersion -replace '[\\/:*?"<>|]', '_'
+                            $newPackageDir = Join-Path $OutputPath "$sanitizedName\$newSanitizedVersion\$Scope"
+
+                            if ($packageDir -ne $newPackageDir) {
+                                Write-Host "Updating package directory to use detected version..." -ForegroundColor Cyan
+                                Write-Verbose "Moving from $packageDir to $newPackageDir"
+
+                                # Create new directory and move files
+                                New-Item -Path $newPackageDir -ItemType Directory -Force | Out-Null
+                                Get-ChildItem -Path $packageDir -Recurse | Move-Item -Destination $newPackageDir -Force
+
+                                # Remove old directory
+                                Remove-Item -Path $packageDir -Recurse -Force
+
+                                # Update packageDir variable
+                                $packageDir = $newPackageDir
+                                $sanitizedVersion = $newSanitizedVersion
+                            }
+                        }
+                    } else {
+                        # Fallback: use largest bundle
+                        $msixMainPackage = ($bundles | Sort-Object Length -Descending | Select-Object -First 1).Name
+                        Write-Verbose "Main package (largest bundle, version unknown): $msixMainPackage"
+                    }
                 } else {
                     # No bundles, use largest file as main package
-                    $sortedBySize = $allMsixFiles | Sort-Object Length -Descending
+                    $sortedBySize = $mainMsixFiles | Sort-Object Length -Descending
                     $msixMainPackage = $sortedBySize[0].Name
-                    Write-Verbose "Main package (largest): $msixMainPackage"
-
-                    # Dependencies are smaller files
-                    $msixDependencies = $sortedBySize | Select-Object -Skip 1 | ForEach-Object { $_.Name }
+                    Write-Verbose "Main package (largest file): $msixMainPackage"
                 }
+            }
 
-                if ($msixDependencies.Count -gt 0) {
-                    Write-Host "Found $($msixDependencies.Count) dependencies:" -ForegroundColor Cyan
-                    foreach ($dep in $msixDependencies) {
-                        Write-Host "  - $dep" -ForegroundColor Gray
+            # Find dependencies in Dependencies\ subdirectory (winget downloads them there)
+            # Filter to only newest version of each dependency for the specified architecture
+            $depsDir = Join-Path $packageDir "Dependencies"
+            if (Test-Path $depsDir) {
+                $depFiles = Get-ChildItem -Path $depsDir -Include '*.msix', '*.appx', '*.msixbundle', '*.appxbundle' -ErrorAction SilentlyContinue
+
+                if ($depFiles) {
+                    # Group dependencies by base name (without version/architecture)
+                    # Example: Microsoft.VCLibs.140.00_14.0.33519.0_Universal_X64.appx
+                    # Base: Microsoft.VCLibs.140.00, Version: 14.0.33519.0, Arch: X64
+
+                    $depsByBaseName = @{}
+
+                    foreach ($depFile in $depFiles) {
+                        # Parse: BaseName_Version_Type_Architecture.extension
+                        if ($depFile.Name -match '^(.+?)_(\d+\.\d+\.\d+\.\d+)_(.+?)_(X64|X86|Arm64|Arm|Universal)\.') {
+                            $baseName = $matches[1]
+                            $depVersion = $matches[2]
+                            $depArch = $matches[4]
+
+                            # Filter by architecture if specified
+                            $archMatch = $false
+                            if (-not $Architecture) {
+                                # No architecture specified, prefer Universal or X64
+                                $archMatch = $depArch -in @('Universal', 'X64')
+                            } elseif ($Architecture -contains $depArch) {
+                                $archMatch = $true
+                            } elseif ($depArch -eq 'Universal') {
+                                # Universal packages work for any architecture
+                                $archMatch = $true
+                            }
+
+                            if ($archMatch) {
+                                $key = "$baseName-$depArch"
+
+                                if (-not $depsByBaseName.ContainsKey($key)) {
+                                    $depsByBaseName[$key] = @{
+                                        File = $depFile
+                                        Version = [Version]$depVersion
+                                    }
+                                } else {
+                                    # Keep the newest version
+                                    if ([Version]$depVersion -gt $depsByBaseName[$key].Version) {
+                                        $depsByBaseName[$key] = @{
+                                            File = $depFile
+                                            Version = [Version]$depVersion
+                                        }
+                                    }
+                                }
+                            }
+                        }
                     }
+
+                    # Extract newest dependencies
+                    $msixDependencies = $depsByBaseName.Values | ForEach-Object { "Dependencies\$($_.File.Name)" }
+
+                    if ($msixDependencies.Count -gt 0) {
+                        Write-Host "Found $($msixDependencies.Count) dependencies (newest versions, filtered by architecture):" -ForegroundColor Cyan
+                        foreach ($dep in $msixDependencies | Sort-Object) {
+                            Write-Host "  - $dep" -ForegroundColor Gray
+                        }
+                    }
+                }
+            }
+
+            # Set installerFile to main MSIX package
+            $installerFile = $msixMainPackage
+        } else {
+            # Non-MSIX package: Look for common installer extensions
+            $installerExtensions = @('*.msi', '*.exe')
+            foreach ($ext in $installerExtensions) {
+                $foundFiles = Get-ChildItem -Path $packageDir -Filter $ext -ErrorAction SilentlyContinue
+                if ($foundFiles) {
+                    $installerFile = $foundFiles[0].Name
+                    Write-Verbose "Found installer file: $installerFile"
+                    break
                 }
             }
         }
@@ -485,15 +590,19 @@ try {
         # Use MSIX-specific script generation
         Write-Verbose "Using MSIX/AppX script generation"
 
-        # Determine if this is all-in-one or separate dependencies mode
-        $allInOne = -not $IncludeDependencies
-
-        if ($IncludeDependencies -and $msixDependencies.Count -gt 0) {
-            Write-Verbose "Separate dependencies mode: Main package will NOT install dependencies"
-            $dependenciesToInclude = @()  # Don't include dependencies in main install script
+        # Determine script generation mode:
+        # - AllInOne = $true: Dependencies included in main install script (default behavior)
+        # - AllInOne = $false: Dependencies NOT included, will be separate Tanium packages
+        if ($IncludeDependencies) {
+            # Separate dependencies mode - explicitly set AllInOne to false
+            Write-Verbose "Separate dependencies mode (-IncludeDependencies): Main package will NOT install dependencies"
+            $allInOne = $false
+            $dependenciesToInclude = @()  # Empty array - don't include dependencies in script
         } else {
-            Write-Verbose "All-in-one mode: Main package will install all dependencies"
-            $dependenciesToInclude = $msixDependencies
+            # All-in-one mode (default) - explicitly set AllInOne to true
+            Write-Verbose "All-in-one mode (default): Main package will install all dependencies"
+            $allInOne = $true
+            $dependenciesToInclude = $msixDependencies  # Include all dependencies in script
         }
 
         $installScript = New-MsixInstallScript `
