@@ -1,0 +1,44 @@
+PackageIdentifier: 9MSMLRH6LZF3
+PackageVersion: Unknown
+Agreements:
+- AgreementLabel: Category
+  Agreement: Productivity
+- AgreementLabel: Pricing
+  Agreement: Free
+- AgreementLabel: Free Trial
+  Agreement: No
+- AgreementLabel: Terms of Transaction
+  AgreementUrl: https://aka.ms/microsoft-store-terms-of-transaction
+- AgreementLabel: Seizure Warning
+  AgreementUrl: https://aka.ms/microsoft-store-seizure-warning
+- AgreementLabel: Store License Terms
+  AgreementUrl: https://aka.ms/microsoft-store-license
+PackageLocale: en-us
+Copyright: (c) Microsoft Corporation
+Description: This fast and simple editor has been a staple of Windows for years. Use
+  it to view, edit, and search through plain text documents instantly.
+ShortDescription: This fast and simple editor has been a staple of Windows for years.
+  Use it to view, edit, and search through plain text documents instantly.
+License: https://go.microsoft.com/fwlink/?LinkId=529064
+PackageName: Windows Notepad
+PrivacyUrl: http://go.microsoft.com/fwlink/?LinkID=521839
+Publisher: Microsoft Corporation
+PublisherUrl: http://www.microsoft.com/
+Installers:
+- Architecture: x64
+  InstallerType: msstore
+  MSStoreProductIdentifier: 9MSMLRH6LZF3
+  Scope: user
+  PackageFamilyName: Microsoft.WindowsNotepad_8wekyb3d8bbwe
+  InstallerAbortsTerminal: false
+  InstallLocationRequired: false
+  RequireExplicitUpgrade: false
+  DisplayInstallWarnings: false
+  DownloadCommandProhibited: false
+  ArchiveBinariesDependOnPath: false
+  UpgradeBehavior: install
+  Markets:
+    AllowedMarkets:
+    - US
+ManifestVersion: 1.6.0
+ManifestType: merged

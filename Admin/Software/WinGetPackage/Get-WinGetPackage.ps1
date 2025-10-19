@@ -430,7 +430,12 @@ try {
             Write-Verbose "Detected MSIX/AppX package type, parsing dependencies..."
 
             # Find all MSIX/AppX files in root directory (main packages)
-            $mainMsixFiles = Get-ChildItem -Path $packageDir -Include '*.msix', '*.appx', '*.msixbundle', '*.appxbundle' -ErrorAction SilentlyContinue
+            $mainMsixFiles = @()
+            $mainMsixFiles += Get-ChildItem -Path "$packageDir\*.msix" -File -ErrorAction SilentlyContinue
+            $mainMsixFiles += Get-ChildItem -Path "$packageDir\*.appx" -File -ErrorAction SilentlyContinue
+            $mainMsixFiles += Get-ChildItem -Path "$packageDir\*.msixbundle" -File -ErrorAction SilentlyContinue
+            $mainMsixFiles += Get-ChildItem -Path "$packageDir\*.appxbundle" -File -ErrorAction SilentlyContinue
+            Write-Verbose "Found $($mainMsixFiles.Count) MSIX files in root directory"
 
             if ($mainMsixFiles) {
                 # Main package is typically a bundle - find the NEWEST version
@@ -498,7 +503,11 @@ try {
             # Filter to only newest version of each dependency for the specified architecture
             $depsDir = Join-Path $packageDir "Dependencies"
             if (Test-Path $depsDir) {
-                $depFiles = Get-ChildItem -Path $depsDir -Include '*.msix', '*.appx', '*.msixbundle', '*.appxbundle' -ErrorAction SilentlyContinue
+                $depFiles = @()
+                $depFiles += Get-ChildItem -Path "$depsDir\*.msix" -File -ErrorAction SilentlyContinue
+                $depFiles += Get-ChildItem -Path "$depsDir\*.appx" -File -ErrorAction SilentlyContinue
+                $depFiles += Get-ChildItem -Path "$depsDir\*.msixbundle" -File -ErrorAction SilentlyContinue
+                $depFiles += Get-ChildItem -Path "$depsDir\*.appxbundle" -File -ErrorAction SilentlyContinue
 
                 if ($depFiles) {
                     # Group dependencies by base name (without version/architecture)
@@ -560,12 +569,17 @@ try {
             }
 
             # Set installerFile to main MSIX package
-            $installerFile = $msixMainPackage
+            if ($msixMainPackage) {
+                $installerFile = $msixMainPackage
+                Write-Verbose "Set installerFile to main MSIX package: $installerFile"
+            } else {
+                Write-Warning "MSIX package detected but no main package file found"
+            }
         } else {
             # Non-MSIX package: Look for common installer extensions
             $installerExtensions = @('*.msi', '*.exe')
             foreach ($ext in $installerExtensions) {
-                $foundFiles = Get-ChildItem -Path $packageDir -Filter $ext -ErrorAction SilentlyContinue
+                $foundFiles = Get-ChildItem -Path $packageDir -File -Filter $ext -ErrorAction SilentlyContinue
                 if ($foundFiles) {
                     $installerFile = $foundFiles[0].Name
                     Write-Verbose "Found installer file: $installerFile"
