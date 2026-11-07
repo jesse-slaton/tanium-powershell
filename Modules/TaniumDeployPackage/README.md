@@ -193,11 +193,11 @@ For architecture and design details, see: [docs/TaniumDeployPackage-Module-Desig
 ## Roadmap
 
 ### Phase 1: Core Functionality (Current)
-- ✅ File download with BITS support
-- ✅ Metadata generation
-- ✅ Script generation (install/remove)
-- ✅ Helper functions
-- ✅ Module structure and manifest
+- [x] File download with BITS support
+- [x] Metadata generation
+- [x] Script generation (install/remove)
+- [x] Helper functions
+- [x] Module structure and manifest
 
 ### Phase 2: Windows Update Catalog Integration (Planned)
 - Refactor `Get-UpdateCatalogPackage.ps1` to use module
