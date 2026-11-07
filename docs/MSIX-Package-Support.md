@@ -6,13 +6,13 @@ The WinGet package generator (`Get-WinGetPackage.ps1`) includes full support for
 
 ## Features
 
-### ✅ Automatic Version Detection
+### Automatic Version Detection
 - Extracts version directly from MSIX bundle manifest (AppxBundleManifest.xml)
 - No longer relies on filename parsing
 - Works for `.msix`, `.msixbundle`, `.appx`, `.appxbundle` files
 - Properly renames package directory from "Unknown" to detected version
 
-### ✅ Dependency Management
+### Dependency Management
 
 Two modes supported:
 
@@ -29,19 +29,19 @@ Two modes supported:
 - CI/CD pipeline imports dependencies first, then main package
 - Allows shared dependencies across multiple applications
 
-### ✅ Architecture Filtering
+### Architecture Filtering
 - Filters dependencies by `-Architecture` parameter (e.g., `x64`)
 - Keeps only **newest version** of each dependency
 - Supports Universal architecture (works for all platforms)
 - Reduces dependency count (e.g., 19 raw dependencies → 5 filtered)
 
-### ✅ Scope-Aware Installation
+### Scope-Aware Installation
 - **User scope**: Uses `Add-AppxPackage`
 - **Machine scope**: Uses `Add-AppxProvisionedPackage`
 - Automatic scope detection from WinGet manifest
 - User prompt when multiple scopes available
 
-### ✅ Proper Tanium Detection
+### Proper Tanium Detection
 Uses AppX Package detection format (not registry):
 ```
 AppX Package "*PackageId*" >= "Version"
