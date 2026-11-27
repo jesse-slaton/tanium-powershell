@@ -51,6 +51,19 @@ Some scripts depend on external repositories. See `EXTERNAL_REPOS.txt` for:
 - Installation instructions
 - Local path requirements
 
+## Running the tests
+
+The tests need Pester 5 (`Install-Module Pester -MinimumVersion 5.0 -Scope CurrentUser`). From the repo root:
+
+```powershell
+Invoke-Pester -Path ./Tests -Output Detailed
+```
+
+Each file in `Tests/Unit` is a stub for one script. A stub finds its script by exact file name
+and checks it with the PowerShell parser. It never runs the script, so the suite does not change
+the machine it runs on. A stub whose script is missing or ambiguous fails with a message that
+names the script. The shared helpers are in `Tests/TestHelpers.psm1`.
+
 ## Getting Started
 
 See [DEV_ENVIRONMENT.md](./DEV_ENVIRONMENT.md) for:
