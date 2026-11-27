@@ -30,7 +30,8 @@ function Resolve-StubTarget {
         .git, and any *.Tests.ps1 file are never candidates. There is no fallback, no suffix
         stripping and no guessing at renames.
 
-        Returns an object with Status (Found, NotFound or Ambiguous), Name, Path (the full path
+        Returns an object with Status (Found, NotFound, Ambiguous or Error; Error means part of the
+        tree could not be read, so the result cannot be trusted), Name, Path (the full path
         when Found, otherwise $null), Matches (repo-relative paths of every match) and Message
         (a sentence fit for a test failure).
 
@@ -53,8 +54,21 @@ function Resolve-StubTarget {
 
     $rootPath = (Resolve-Path -LiteralPath $Root -ErrorAction Stop).ProviderPath.TrimEnd('\', '/')
 
-    $files = @(Get-ChildItem -LiteralPath $rootPath -Recurse -File -ErrorAction SilentlyContinue |
+    # -Force so hidden and dot-prefixed items are seen on every platform (Unix skips them
+    # otherwise); the Tests and .git segment exclusions below are then the only filter.
+    # Enumeration errors are collected, never swallowed: an unreadable folder could hide a
+    # second copy of the target, so it must not be reported as Found.
+    $enumErrors = $null
+    $files = @(Get-ChildItem -LiteralPath $rootPath -Recurse -File -Force -ErrorAction SilentlyContinue -ErrorVariable enumErrors |
             Where-Object { $_.Name -ceq $Name -and $_.Name -notlike '*.Tests.ps1' })
+
+    $unreadable = @(foreach ($err in @($enumErrors)) {
+            $errPath = if ($err.TargetObject -is [string]) { $err.TargetObject } else { [string]$err.Exception.Message }
+            $errRelative = if ($errPath.StartsWith($rootPath)) { $errPath.Substring($rootPath.Length).TrimStart('\', '/') } else { $errPath }
+            $errSegments = @($errRelative -split '[\\/]')
+            if ($errSegments -contains 'Tests' -or $errSegments -contains '.git') { continue }
+            $errPath
+        })
 
     $found = @(foreach ($file in $files) {
             $relative = $file.FullName.Substring($rootPath.Length).TrimStart('\', '/')
@@ -66,7 +80,11 @@ function Resolve-StubTarget {
     $status = 'Found'
     $path = $null
     $message = "Script '$Name' found."
-    if ($found.Count -eq 0) {
+    if ($unreadable.Count -gt 0) {
+        $status = 'Error'
+        $message = "Script '$Name' could not be resolved reliably; these paths could not be read: $($unreadable -join ', ')."
+    }
+    elseif ($found.Count -eq 0) {
         $status = 'NotFound'
         $message = "Script '$Name' was not found in the repository (looked for an exact, case-sensitive file name outside Tests/). Rename the stub or remove it."
     }

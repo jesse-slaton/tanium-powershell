@@ -80,6 +80,41 @@ Describe 'Resolve-StubTarget' {
         $result.Path | Should -Be $expected
     }
 
+    It 'ignores a script under a dot-prefixed .git folder on every platform' {
+        $null = Add-Fixture -Root $script:Root -RelativePath '.git/hooks/Get-Thing.ps1'
+        $expected = Add-Fixture -Root $script:Root -RelativePath 'Sensors/Get-Thing.ps1'
+        $result = Resolve-StubTarget -Name 'Get-Thing.ps1' -Root $script:Root
+        $result.Status | Should -Be 'Found'
+        $result.Path | Should -Be $expected
+    }
+
+    It 'reports Error, not Found, when enumeration reports an unreadable path' {
+        $null = Add-Fixture -Root $script:Root -RelativePath 'Sensors/Get-Thing.ps1'
+        Mock -ModuleName TestHelpers Get-ChildItem {
+            Write-Error -Message 'Access denied' -TargetObject (Join-Path $LiteralPath 'Locked') -ErrorAction SilentlyContinue
+            [pscustomobject]@{ Name = 'Get-Thing.ps1'; FullName = (Join-Path $LiteralPath 'Sensors/Get-Thing.ps1') }
+        }
+        $result = Resolve-StubTarget -Name 'Get-Thing.ps1' -Root $script:Root
+        $result.Status | Should -Be 'Error'
+        $result.Path | Should -BeNullOrEmpty
+        $result.Message | Should -BeLike '*could not be read*Locked*'
+    }
+
+    It 'reports Error, not Found, when a real folder cannot be read' -Skip:($IsWindows -or $env:USER -eq 'root') {
+        $null = Add-Fixture -Root $script:Root -RelativePath 'Sensors/Get-Thing.ps1'
+        $locked = Join-Path $script:Root 'Locked'
+        $null = Add-Fixture -Root $script:Root -RelativePath 'Locked/Get-Thing.ps1'
+        chmod 000 $locked
+        try {
+            $result = Resolve-StubTarget -Name 'Get-Thing.ps1' -Root $script:Root
+        }
+        finally {
+            chmod 755 $locked
+        }
+        $result.Status | Should -Be 'Error'
+        $result.Message | Should -BeLike '*Locked*'
+    }
+
     It 'searches the real repo root by default without throwing' {
         { Resolve-StubTarget -Name 'No-Such-Script-Anywhere.ps1' } | Should -Not -Throw
         (Resolve-StubTarget -Name 'No-Such-Script-Anywhere.ps1').Status | Should -Be 'NotFound'
