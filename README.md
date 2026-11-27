@@ -53,9 +53,18 @@ Some scripts depend on external repositories. See `EXTERNAL_REPOS.txt` for:
 
 ## Running the tests
 
-The tests need Pester 5 (`Install-Module Pester -MinimumVersion 5.0 -Scope CurrentUser`). From the repo root:
+The tests need Pester 5. Windows PowerShell 5.1 ships an older, Microsoft-signed Pester 3.4.0 that
+blocks a plain install, so install with `-SkipPublisherCheck` and import version 5 explicitly
+(otherwise the inbox 3.4.0 module is loaded):
 
 ```powershell
+Install-Module Pester -MinimumVersion 5.0 -Scope CurrentUser -Force -SkipPublisherCheck
+```
+
+From the repo root:
+
+```powershell
+Import-Module Pester -MinimumVersion 5.0
 Invoke-Pester -Path ./Tests -Output Detailed
 ```
 
