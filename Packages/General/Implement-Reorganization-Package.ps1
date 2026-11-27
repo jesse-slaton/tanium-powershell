@@ -178,39 +178,30 @@ function New-TestStub {
         [string]$OutputPath
     )
 
+    # The stub resolves and parses the script; it never runs it. Names go inside
+    # single-quoted literals, so a quote in the name is doubled.
+    $quotedName = $ScriptName.Replace("'", "''")
+
     $testContent = @"
 #Requires -Version 5.1
 # Pester tests for $ScriptName
+# Behavior tests: see jesse-slaton/tanium-powershell#62 (M7).
 
 BeforeAll {
-    `$scriptPath = `$PSScriptRoot.Replace('\Tests', '')
-    . (Join-Path `$scriptPath '$ScriptName')
+    Import-Module (Join-Path (Split-Path -Parent `$PSScriptRoot) 'TestHelpers.psm1') -Force
+    `$script:Target = Resolve-StubTarget -Name '$quotedName'
 }
 
-Describe "$ScriptName Tests" {
-    Context "Script Loading" {
-        It "Should load without errors" {
-            { . (Join-Path `$PSScriptRoot.Replace('\Tests', '') '$ScriptName') } | Should -Not -Throw
-        }
-    }
-
-    Context "TODO: Add Functional Tests" {
-        It "TODO: Test main functionality" {
-            `$true | Should -Be `$true
+Describe '$quotedName Tests' {
+    Context 'Script Parsing' {
+        It 'Should be found exactly once in the repository' {
+            `$script:Target.Status | Should -Be 'Found' -Because `$script:Target.Message
         }
 
-        It "TODO: Test error handling" {
-            `$true | Should -Be `$true
-        }
-
-        It "TODO: Test parameter validation" {
-            `$true | Should -Be `$true
-        }
-    }
-
-    Context "TODO: Add Output Tests" {
-        It "TODO: Verify output format" {
-            `$true | Should -Be `$true
+        It 'Should parse without errors and without being run' {
+            `$script:Target.Status | Should -Be 'Found' -Because `$script:Target.Message
+            `$parse = Get-ScriptParseResult -Path `$script:Target.Path
+            `$parse.ErrorCount | Should -Be 0 -Because (`$parse.Errors -join '; ')
         }
     }
 }
@@ -908,7 +899,7 @@ function New-SupportingFiles {
 
     # Process both repositories
     foreach ($repoPath in @($taniumPath, $utilitiesPath)) {
-        $scripts = Get-ChildItem -Path $repoPath -Include *.ps1 -Recurse -File | Where-Object { $_.DirectoryName -notmatch '\\Tests\\' }
+        $scripts = Get-ChildItem -Path $repoPath -Include *.ps1 -Recurse -File | Where-Object { $_.Name -notlike '*.Tests.ps1' -and (@($_.DirectoryName.Substring($repoPath.TrimEnd('\', '/').Length) -split '[\\/]') -notcontains 'Tests') }
 
         Write-Log "Processing $($scripts.Count) scripts in $(Split-Path $repoPath -Leaf)"
 
@@ -916,12 +907,16 @@ function New-SupportingFiles {
             $scriptName = $script.Name
             $baseName = [System.IO.Path]::GetFileNameWithoutExtension($scriptName)
 
-            # Create test stub if not exists
-            $testFileName = "$baseName.Tests.ps1"
-            $testPath = Join-Path (Join-Path $repoPath "Tests\Unit") $testFileName
+            # Create test stub if not exists. Test stubs go only into this (Tanium) repository:
+            # they import its Tests/TestHelpers.psm1 (Resolve-StubTarget, Get-ScriptParseResult),
+            # which the utilities repository does not have, so a stub written there would fail.
+            if ($repoPath -eq $taniumPath) {
+                $testFileName = "$baseName.Tests.ps1"
+                $testPath = Join-Path (Join-Path $repoPath "Tests\Unit") $testFileName
 
-            if (-not (Test-Path $testPath)) {
-                New-TestStub -ScriptName $scriptName -OutputPath $testPath
+                if (-not (Test-Path $testPath)) {
+                    New-TestStub -ScriptName $scriptName -OutputPath $testPath
+                }
             }
 
             # Create documentation stub
