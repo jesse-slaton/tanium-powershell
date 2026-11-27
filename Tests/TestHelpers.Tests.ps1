@@ -100,7 +100,9 @@ Describe 'Resolve-StubTarget' {
         $result.Message | Should -BeLike '*could not be read*Locked*'
     }
 
-    It 'reports Error, not Found, when a real folder cannot be read' -Skip:($IsWindows -or $env:USER -eq 'root') {
+    # $env:OS, not $IsWindows: $IsWindows does not exist in Windows PowerShell 5.1, where it is
+    # $null and the skip would never fire. chmod is Unix-only, and root can read a 000 folder.
+    It 'reports Error, not Found, when a real folder cannot be read' -Skip:($env:OS -eq 'Windows_NT' -or $env:USER -eq 'root') {
         $null = Add-Fixture -Root $script:Root -RelativePath 'Sensors/Get-Thing.ps1'
         $locked = Join-Path $script:Root 'Locked'
         $null = Add-Fixture -Root $script:Root -RelativePath 'Locked/Get-Thing.ps1'
