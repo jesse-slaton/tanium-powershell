@@ -907,12 +907,16 @@ function New-SupportingFiles {
             $scriptName = $script.Name
             $baseName = [System.IO.Path]::GetFileNameWithoutExtension($scriptName)
 
-            # Create test stub if not exists
-            $testFileName = "$baseName.Tests.ps1"
-            $testPath = Join-Path (Join-Path $repoPath "Tests\Unit") $testFileName
+            # Create test stub if not exists. Test stubs go only into this (Tanium) repository:
+            # they import its Tests/TestHelpers.psm1 (Resolve-StubTarget, Get-ScriptParseResult),
+            # which the utilities repository does not have, so a stub written there would fail.
+            if ($repoPath -eq $taniumPath) {
+                $testFileName = "$baseName.Tests.ps1"
+                $testPath = Join-Path (Join-Path $repoPath "Tests\Unit") $testFileName
 
-            if (-not (Test-Path $testPath)) {
-                New-TestStub -ScriptName $scriptName -OutputPath $testPath
+                if (-not (Test-Path $testPath)) {
+                    New-TestStub -ScriptName $scriptName -OutputPath $testPath
+                }
             }
 
             # Create documentation stub
