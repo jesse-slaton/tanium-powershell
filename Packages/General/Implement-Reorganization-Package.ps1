@@ -899,7 +899,7 @@ function New-SupportingFiles {
 
     # Process both repositories
     foreach ($repoPath in @($taniumPath, $utilitiesPath)) {
-        $scripts = Get-ChildItem -Path $repoPath -Include *.ps1 -Recurse -File | Where-Object { $_.Name -notlike '*.Tests.ps1' -and (@($_.DirectoryName -split '[\\/]') -notcontains 'Tests') }
+        $scripts = Get-ChildItem -Path $repoPath -Include *.ps1 -Recurse -File | Where-Object { $_.Name -notlike '*.Tests.ps1' -and (@($_.DirectoryName.Substring($repoPath.TrimEnd('\', '/').Length) -split '[\\/]') -notcontains 'Tests') }
 
         Write-Log "Processing $($scripts.Count) scripts in $(Split-Path $repoPath -Leaf)"
 
