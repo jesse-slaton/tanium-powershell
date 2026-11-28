@@ -176,9 +176,11 @@ function Get-PowerShellEncodingProblem {
     try { $text = $strictUtf8.GetString($Bytes) }
     catch [System.Text.DecoderFallbackException] { return 'not valid UTF-8 (UTF-16 without a byte order mark?)' }
 
-    # A byte below 0x20 is never part of a multi-byte UTF-8 sequence, so matching the decoded
-    # text finds every such byte. NUL is the usual sign of BOM-less UTF-16.
-    if ($text -match '[\x00-\x08\x0B\x0E-\x1F]') {
+    # A byte below 0x20 or equal to 0x7F is never part of a multi-byte UTF-8 sequence, so matching
+    # the decoded text finds every such byte. NUL is the usual sign of BOM-less UTF-16. The range
+    # \x7F-\x9F adds DEL and the C1 controls (U+0080 to U+009F, bytes C2 80 to C2 9F in UTF-8);
+    # .NET regex reads \xNN as the UTF-16 code unit U+00NN on both Windows PowerShell 5.1 and 7.
+    if ($text -match '[\x00-\x08\x0B\x0E-\x1F\x7F-\x9F]') {
         return 'control character other than tab, LF, FF or CR (UTF-16 without a byte order mark?)'
     }
 

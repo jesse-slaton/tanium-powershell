@@ -181,6 +181,8 @@ Describe 'Get-PowerShellEncodingProblem' {
         @{ Case = 'BOM-less UTF-16LE ASCII text'; Expected = 'control character other than tab, LF, FF or CR*'; Make = { [System.Text.Encoding]::Unicode.GetBytes('param()') } }
         @{ Case = 'BOM-less UTF-16BE ASCII text'; Expected = 'control character other than tab, LF, FF or CR*'; Make = { [System.Text.Encoding]::BigEndianUnicode.GetBytes('param()') } }
         @{ Case = 'invalid UTF-8'; Expected = 'not valid UTF-8*'; Make = { [byte[]](0x41, 0xC3, 0x28) } }
+        @{ Case = 'a DEL byte (U+007F) in ASCII text'; Expected = 'control character other than tab, LF, FF or CR*'; Make = { [byte[]](0x41, 0x7F, 0x42) } }
+        @{ Case = 'a C1 control (U+0085) in BOM-prefixed UTF-8'; Expected = 'control character other than tab, LF, FF or CR*'; Make = { [byte[]](0xEF, 0xBB, 0xBF, 0x41, 0xC2, 0x85, 0x42) } }
         @{ Case = 'a control byte in ASCII text'; Expected = 'control character other than tab, LF, FF or CR*'; Make = { [byte[]](0x41, 0x01, 0x42) } }
     ) {
         $bytes = [byte[]]@(& $Make)
