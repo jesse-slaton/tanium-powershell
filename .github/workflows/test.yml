@@ -1,0 +1,112 @@
+# Run the Pester suite on Windows PowerShell 5.1 and PowerShell 7, and PSScriptAnalyzer as
+# an informational job, on every pull request and push to main.
+#
+# Both Pester legs stay for good: the Tanium client runs sensors and packages under Windows
+# PowerShell 5.1, so 5.1 compatibility is a permanent requirement here. The matrix job names
+# stay stable because they become required checks (#38).
+#
+# The analyzer job reports findings but never fails the build; turning its rules on is M3's
+# job (#16 tracks coverage). Coverage is not collected here, and there is no help-coverage or
+# compatibility step: this repository has no Scripts/ folder, and the compatibility settings
+# file arrives with M3.
+#
+# Copied from jesse-slaton/powershell-utilities `.github/workflows/test.yml`, with the
+# coverage block, help-coverage step and compatibility-analyzer step removed.
+
+name: Test
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: test-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  pester:
+    name: Pester (${{ matrix.name }})
+    runs-on: windows-latest
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Windows PowerShell 5.1
+            shell: powershell
+          - name: PowerShell 7
+            shell: pwsh
+    defaults:
+      run:
+        shell: ${{ matrix.shell }}
+    steps:
+      - name: Check out
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Show PowerShell version
+        run: $PSVersionTable
+
+      - name: Install pinned Pester and PSScriptAnalyzer
+        run: ./Tests/Install-TestDependencies.ps1
+
+      - name: Run Pester
+        run: |
+          Import-Module Pester -RequiredVersion 5.6.1
+          $config = New-PesterConfiguration
+          $config.Run.Path = './Tests'
+          $config.Run.Exit = $true
+          $config.Output.Verbosity = 'Detailed'
+          $config.TestResult.Enabled = $true
+          $config.TestResult.OutputFormat = 'JUnitXml'
+          $config.TestResult.OutputPath = 'test-results.xml'
+          Invoke-Pester -Configuration $config
+
+      - name: Upload results
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: test-results-${{ matrix.shell }}
+          path: test-results.xml
+          if-no-files-found: ignore
+
+  # Informational only: never fails the build and is not a required check. A job of its own so
+  # the required Pester jobs do not wait for it, and run once, on PowerShell 7, because the
+  # analyzer's findings do not depend on the host edition. Sequential on purpose:
+  # PSScriptAnalyzer is not thread-safe under ForEach-Object -Parallel (race errors, dropped
+  # findings), and splitting it across processes gave no speedup when measured.
+  analyzer:
+    name: PSScriptAnalyzer (informational)
+    runs-on: windows-latest
+    permissions:
+      contents: read
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - name: Check out
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install pinned Pester and PSScriptAnalyzer
+        run: ./Tests/Install-TestDependencies.ps1
+
+      - name: PSScriptAnalyzer warnings (informational)
+        continue-on-error: true
+        run: |
+          Import-Module PSScriptAnalyzer -RequiredVersion 1.23.0
+          $dirs = @('./Sensors', './Packages', './Modules', './Admin', './Deploy-Packages') |
+              Where-Object { Test-Path $_ }
+          $findings = @($dirs | ForEach-Object { Invoke-ScriptAnalyzer -Path $_ -Recurse -Severity Warning })
+          "$($findings.Count) warnings"
+          $findings |
+            Sort-Object ScriptName, Line |
+            Format-Table -AutoSize ScriptName, Line, RuleName, Message |
+            Out-String -Width 400
