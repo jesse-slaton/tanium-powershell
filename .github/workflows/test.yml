@@ -2,15 +2,17 @@
 # an informational job, on every pull request and push to main.
 #
 # Both Pester legs stay for good: the Tanium client runs sensors and packages under Windows
-# PowerShell 5.1, so 5.1 compatibility is a permanent requirement here. The matrix job names
-# stay stable because they become required checks (#38).
+# PowerShell 5.1, so 5.1 compatibility is a permanent requirement here. The job names stay
+# stable because they become required checks (#38). The legs are separate jobs rather than a
+# matrix because each job needs a literal shell: `shell: powershell` runs Windows PowerShell
+# 5.1 under windows-latest, while `shell: pwsh` runs PowerShell 7.
 #
 # The analyzer job reports findings but never fails the build; turning its rules on is M3's
 # job (#16 tracks coverage). Coverage is not collected here, and there is no help-coverage or
 # compatibility step: this repository has no Scripts/ folder, and the compatibility settings
 # file arrives with M3.
 #
-# Copied from jesse-slaton/powershell-utilities `.github/workflows/test.yml`, with the
+# Adapted from jesse-slaton/powershell-utilities `.github/workflows/test.yml`, with the
 # coverage block, help-coverage step and compatibility-analyzer step removed.
 
 name: Test
@@ -28,22 +30,14 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  pester:
-    name: Pester (${{ matrix.name }})
+  pester-windows-powershell-5-1:
+    name: Pester (Windows PowerShell 5.1)
     runs-on: windows-latest
     permissions:
       contents: read
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - name: Windows PowerShell 5.1
-            shell: powershell
-          - name: PowerShell 7
-            shell: pwsh
     defaults:
       run:
-        shell: ${{ matrix.shell }}
+        shell: powershell
     steps:
       - name: Check out
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -64,7 +58,7 @@ jobs:
           $config.Run.Exit = $true
           $config.Output.Verbosity = 'Detailed'
           $config.TestResult.Enabled = $true
-          $config.TestResult.OutputFormat = 'JUnitXml'
+          $config.TestResult.OutputFormat = 'NUnitXml'
           $config.TestResult.OutputPath = 'test-results.xml'
           Invoke-Pester -Configuration $config
 
@@ -72,7 +66,47 @@ jobs:
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: test-results-${{ matrix.shell }}
+          name: test-results-windows-powershell-5-1
+          path: test-results.xml
+          if-no-files-found: ignore
+
+  pester-powershell-7:
+    name: Pester (PowerShell 7)
+    runs-on: windows-latest
+    permissions:
+      contents: read
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - name: Check out
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Show PowerShell version
+        run: $PSVersionTable
+
+      - name: Install pinned Pester and PSScriptAnalyzer
+        run: ./Tests/Install-TestDependencies.ps1
+
+      - name: Run Pester
+        run: |
+          Import-Module Pester -RequiredVersion 5.6.1
+          $config = New-PesterConfiguration
+          $config.Run.Path = './Tests'
+          $config.Run.Exit = $true
+          $config.Output.Verbosity = 'Detailed'
+          $config.TestResult.Enabled = $true
+          $config.TestResult.OutputFormat = 'NUnitXml'
+          $config.TestResult.OutputPath = 'test-results.xml'
+          Invoke-Pester -Configuration $config
+
+      - name: Upload results
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: test-results-powershell-7
           path: test-results.xml
           if-no-files-found: ignore
 
