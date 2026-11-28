@@ -2,9 +2,12 @@
 
 Proposed issue titles and bodies for the follow-up work the inventory in `INVENTORY.md` requires
 (issue #50). These are the text to file under each epic; they are not created here. Agent hints are
-included on each title line.
+included on each title line. Survivors are the rows whose Decision is `keep`, `fix`, or `move`.
 
 ## Archive parts (epic #51)
+
+Archived files are the rows whose Decision is `retire`; survivors (`keep`, `fix`, or `move`) are
+covered by the help and test parts, not here.
 
 ### Archive part 1 of 2
 
@@ -57,6 +60,9 @@ included on each title line.
 
 ## Help parts (epic #3, milestone M5)
 
+Survivors are the rows whose Decision is `keep`, `fix`, or `move`. Each part lists survivors whose
+`Help` cell in `INVENTORY.md` is a missing-section list, in the order they appear there.
+
 ### Help part 1 of 16
 
 [mode: direct] [model: sonnet] [effort: medium]
@@ -78,11 +84,11 @@ included on each title line.
 
 **Acceptance criteria:**
 
-- Each script gets a Complete comment-based help block per STANDARDS R-07 (and R-29 for admin/API
-  scripts: at least two `.EXAMPLE` entries and a `.PARAMETER` for every parameter).
-- The missing sections flagged in `INVENTORY.md` (`SYNOPSIS`, `DESCRIPTION`, `PARAMETER`, `EXAMPLE`,
-  `NOTES`) are all present for every script in this part.
-- The #48 help-grade check passes for each script; the Pester suite still passes.
+- Each script below is brought to `Complete` in the `INVENTORY.md` `Help` column: the sections its
+  `Help` cell lists as missing (`SYNOPSIS`, `DESCRIPTION`, `PARAMETER`, `EXAMPLE`, `NOTES`) are added,
+  per STANDARDS R-07 (and R-29 for admin/API scripts: at least two `.EXAMPLE` entries and a
+  `.PARAMETER` for every parameter).
+- The #48 help-grade check passes for each script, and the Pester suite still passes.
 
 ### Help part 2 of 16
 
@@ -105,11 +111,11 @@ included on each title line.
 
 **Acceptance criteria:**
 
-- Each script gets a Complete comment-based help block per STANDARDS R-07 (and R-29 for admin/API
-  scripts: at least two `.EXAMPLE` entries and a `.PARAMETER` for every parameter).
-- The missing sections flagged in `INVENTORY.md` (`SYNOPSIS`, `DESCRIPTION`, `PARAMETER`, `EXAMPLE`,
-  `NOTES`) are all present for every script in this part.
-- The #48 help-grade check passes for each script; the Pester suite still passes.
+- Each script below is brought to `Complete` in the `INVENTORY.md` `Help` column: the sections its
+  `Help` cell lists as missing (`SYNOPSIS`, `DESCRIPTION`, `PARAMETER`, `EXAMPLE`, `NOTES`) are added,
+  per STANDARDS R-07 (and R-29 for admin/API scripts: at least two `.EXAMPLE` entries and a
+  `.PARAMETER` for every parameter).
+- The #48 help-grade check passes for each script, and the Pester suite still passes.
 
 ### Help part 3 of 16
 
@@ -132,11 +138,11 @@ included on each title line.
 
 **Acceptance criteria:**
 
-- Each script gets a Complete comment-based help block per STANDARDS R-07 (and R-29 for admin/API
-  scripts: at least two `.EXAMPLE` entries and a `.PARAMETER` for every parameter).
-- The missing sections flagged in `INVENTORY.md` (`SYNOPSIS`, `DESCRIPTION`, `PARAMETER`, `EXAMPLE`,
-  `NOTES`) are all present for every script in this part.
-- The #48 help-grade check passes for each script; the Pester suite still passes.
+- Each script below is brought to `Complete` in the `INVENTORY.md` `Help` column: the sections its
+  `Help` cell lists as missing (`SYNOPSIS`, `DESCRIPTION`, `PARAMETER`, `EXAMPLE`, `NOTES`) are added,
+  per STANDARDS R-07 (and R-29 for admin/API scripts: at least two `.EXAMPLE` entries and a
+  `.PARAMETER` for every parameter).
+- The #48 help-grade check passes for each script, and the Pester suite still passes.
 
 ### Help part 4 of 16
 
@@ -159,11 +165,11 @@ included on each title line.
 
 **Acceptance criteria:**
 
-- Each script gets a Complete comment-based help block per STANDARDS R-07 (and R-29 for admin/API
-  scripts: at least two `.EXAMPLE` entries and a `.PARAMETER` for every parameter).
-- The missing sections flagged in `INVENTORY.md` (`SYNOPSIS`, `DESCRIPTION`, `PARAMETER`, `EXAMPLE`,
-  `NOTES`) are all present for every script in this part.
-- The #48 help-grade check passes for each script; the Pester suite still passes.
+- Each script below is brought to `Complete` in the `INVENTORY.md` `Help` column: the sections its
+  `Help` cell lists as missing (`SYNOPSIS`, `DESCRIPTION`, `PARAMETER`, `EXAMPLE`, `NOTES`) are added,
+  per STANDARDS R-07 (and R-29 for admin/API scripts: at least two `.EXAMPLE` entries and a
+  `.PARAMETER` for every parameter).
+- The #48 help-grade check passes for each script, and the Pester suite still passes.
 
 ### Help part 5 of 16
 
@@ -186,11 +192,11 @@ included on each title line.
 
 **Acceptance criteria:**
 
-- Each script gets a Complete comment-based help block per STANDARDS R-07 (and R-29 for admin/API
-  scripts: at least two `.EXAMPLE` entries and a `.PARAMETER` for every parameter).
-- The missing sections flagged in `INVENTORY.md` (`SYNOPSIS`, `DESCRIPTION`, `PARAMETER`, `EXAMPLE`,
-  `NOTES`) are all present for every script in this part.
-- The #48 help-grade check passes for each script; the Pester suite still passes.
+- Each script below is brought to `Complete` in the `INVENTORY.md` `Help` column: the sections its
+  `Help` cell lists as missing (`SYNOPSIS`, `DESCRIPTION`, `PARAMETER`, `EXAMPLE`, `NOTES`) are added,
+  per STANDARDS R-07 (and R-29 for admin/API scripts: at least two `.EXAMPLE` entries and a
+  `.PARAMETER` for every parameter).
+- The #48 help-grade check passes for each script, and the Pester suite still passes.
 
 ### Help part 6 of 16
 
@@ -213,11 +219,11 @@ included on each title line.
 
 **Acceptance criteria:**
 
-- Each script gets a Complete comment-based help block per STANDARDS R-07 (and R-29 for admin/API
-  scripts: at least two `.EXAMPLE` entries and a `.PARAMETER` for every parameter).
-- The missing sections flagged in `INVENTORY.md` (`SYNOPSIS`, `DESCRIPTION`, `PARAMETER`, `EXAMPLE`,
-  `NOTES`) are all present for every script in this part.
-- The #48 help-grade check passes for each script; the Pester suite still passes.
+- Each script below is brought to `Complete` in the `INVENTORY.md` `Help` column: the sections its
+  `Help` cell lists as missing (`SYNOPSIS`, `DESCRIPTION`, `PARAMETER`, `EXAMPLE`, `NOTES`) are added,
+  per STANDARDS R-07 (and R-29 for admin/API scripts: at least two `.EXAMPLE` entries and a
+  `.PARAMETER` for every parameter).
+- The #48 help-grade check passes for each script, and the Pester suite still passes.
 
 ### Help part 7 of 16
 
@@ -240,11 +246,11 @@ included on each title line.
 
 **Acceptance criteria:**
 
-- Each script gets a Complete comment-based help block per STANDARDS R-07 (and R-29 for admin/API
-  scripts: at least two `.EXAMPLE` entries and a `.PARAMETER` for every parameter).
-- The missing sections flagged in `INVENTORY.md` (`SYNOPSIS`, `DESCRIPTION`, `PARAMETER`, `EXAMPLE`,
-  `NOTES`) are all present for every script in this part.
-- The #48 help-grade check passes for each script; the Pester suite still passes.
+- Each script below is brought to `Complete` in the `INVENTORY.md` `Help` column: the sections its
+  `Help` cell lists as missing (`SYNOPSIS`, `DESCRIPTION`, `PARAMETER`, `EXAMPLE`, `NOTES`) are added,
+  per STANDARDS R-07 (and R-29 for admin/API scripts: at least two `.EXAMPLE` entries and a
+  `.PARAMETER` for every parameter).
+- The #48 help-grade check passes for each script, and the Pester suite still passes.
 
 ### Help part 8 of 16
 
@@ -267,11 +273,11 @@ included on each title line.
 
 **Acceptance criteria:**
 
-- Each script gets a Complete comment-based help block per STANDARDS R-07 (and R-29 for admin/API
-  scripts: at least two `.EXAMPLE` entries and a `.PARAMETER` for every parameter).
-- The missing sections flagged in `INVENTORY.md` (`SYNOPSIS`, `DESCRIPTION`, `PARAMETER`, `EXAMPLE`,
-  `NOTES`) are all present for every script in this part.
-- The #48 help-grade check passes for each script; the Pester suite still passes.
+- Each script below is brought to `Complete` in the `INVENTORY.md` `Help` column: the sections its
+  `Help` cell lists as missing (`SYNOPSIS`, `DESCRIPTION`, `PARAMETER`, `EXAMPLE`, `NOTES`) are added,
+  per STANDARDS R-07 (and R-29 for admin/API scripts: at least two `.EXAMPLE` entries and a
+  `.PARAMETER` for every parameter).
+- The #48 help-grade check passes for each script, and the Pester suite still passes.
 
 ### Help part 9 of 16
 
@@ -282,7 +288,6 @@ included on each title line.
 **Scope:**
 
 - `Admin/System/Invoke-TaniumClientPatchPostUpgradePatchDeployment-Package.ps1`
-- `Modules/TaniumClient.psm1`
 - `Modules/TaniumDeployPackage/Classes/PackageMetadata.Class.ps1`
 - `Modules/TaniumDeployPackage/Private/Get-ArchitectureFromString.ps1`
 - `Modules/TaniumDeployPackage/Private/Get-CompactOSName.ps1`
@@ -291,14 +296,15 @@ included on each title line.
 - `Modules/TaniumDeployPackage/Public/Get-InstallerDefaults.ps1`
 - `Modules/TaniumDeployPackage/Public/Invoke-FileDownload.ps1`
 - `Modules/TaniumDeployPackage/Public/New-InstallScript.ps1`
+- `Modules/TaniumDeployPackage/Public/New-MsixInstallScript.ps1`
 
 **Acceptance criteria:**
 
-- Each script gets a Complete comment-based help block per STANDARDS R-07 (and R-29 for admin/API
-  scripts: at least two `.EXAMPLE` entries and a `.PARAMETER` for every parameter).
-- The missing sections flagged in `INVENTORY.md` (`SYNOPSIS`, `DESCRIPTION`, `PARAMETER`, `EXAMPLE`,
-  `NOTES`) are all present for every script in this part.
-- The #48 help-grade check passes for each script; the Pester suite still passes.
+- Each script below is brought to `Complete` in the `INVENTORY.md` `Help` column: the sections its
+  `Help` cell lists as missing (`SYNOPSIS`, `DESCRIPTION`, `PARAMETER`, `EXAMPLE`, `NOTES`) are added,
+  per STANDARDS R-07 (and R-29 for admin/API scripts: at least two `.EXAMPLE` entries and a
+  `.PARAMETER` for every parameter).
+- The #48 help-grade check passes for each script, and the Pester suite still passes.
 
 ### Help part 10 of 16
 
@@ -308,24 +314,24 @@ included on each title line.
 
 **Scope:**
 
+- `Modules/TaniumDeployPackage/Public/New-MsixRemoveScript.ps1`
 - `Modules/TaniumDeployPackage/Public/New-PackageReadme.ps1`
 - `Modules/TaniumDeployPackage/Public/New-RemoveScript.ps1`
 - `Modules/TaniumDeployPackage/Public/New-TaniumDeployMetadata.ps1`
-- `Modules/TaniumDeployPackage/TaniumDeployPackage.psm1`
 - `Packages/FileSystem/Get-PrimaryorLoggedInUserProfilePath-Package.ps1`
 - `Packages/FileSystem/Get-TaniumClientFileModificationTime-Package.ps1`
+- `Packages/General/CreateChromeBackupScheduledTask-Package.ps1`
 - `Packages/General/New-TaniumClientEndUserNotification-Package.ps1`
 - `Packages/General/Read-TaniumClientCxMailbox-Package.ps1`
 - `Packages/Office/Disable-TaniumClientActionLock-Package.ps1`
-- `Packages/Office/Disable-TaniumClientTpythonDebug-Package.ps1`
 
 **Acceptance criteria:**
 
-- Each script gets a Complete comment-based help block per STANDARDS R-07 (and R-29 for admin/API
-  scripts: at least two `.EXAMPLE` entries and a `.PARAMETER` for every parameter).
-- The missing sections flagged in `INVENTORY.md` (`SYNOPSIS`, `DESCRIPTION`, `PARAMETER`, `EXAMPLE`,
-  `NOTES`) are all present for every script in this part.
-- The #48 help-grade check passes for each script; the Pester suite still passes.
+- Each script below is brought to `Complete` in the `INVENTORY.md` `Help` column: the sections its
+  `Help` cell lists as missing (`SYNOPSIS`, `DESCRIPTION`, `PARAMETER`, `EXAMPLE`, `NOTES`) are added,
+  per STANDARDS R-07 (and R-29 for admin/API scripts: at least two `.EXAMPLE` entries and a
+  `.PARAMETER` for every parameter).
+- The #48 help-grade check passes for each script, and the Pester suite still passes.
 
 ### Help part 11 of 16
 
@@ -335,6 +341,7 @@ included on each title line.
 
 **Scope:**
 
+- `Packages/Office/Disable-TaniumClientTpythonDebug-Package.ps1`
 - `Packages/Office/Enable-TaniumClientActionLock-Package.ps1`
 - `Packages/Office/Enable-TaniumClientTpythonDebug-Package.ps1`
 - `Packages/Office/Get-TaniumClient-Package.ps1`
@@ -344,15 +351,14 @@ included on each title line.
 - `Packages/Office/Get-TaniumClientCustomTag-Package.ps1`
 - `Packages/Office/Get-TaniumClientCxConfigurationManifestRevision-Package.ps1`
 - `Packages/Office/Get-TaniumClientDbTable-Package.ps1`
-- `Packages/Office/Get-TaniumClientDirectory-Package.ps1`
 
 **Acceptance criteria:**
 
-- Each script gets a Complete comment-based help block per STANDARDS R-07 (and R-29 for admin/API
-  scripts: at least two `.EXAMPLE` entries and a `.PARAMETER` for every parameter).
-- The missing sections flagged in `INVENTORY.md` (`SYNOPSIS`, `DESCRIPTION`, `PARAMETER`, `EXAMPLE`,
-  `NOTES`) are all present for every script in this part.
-- The #48 help-grade check passes for each script; the Pester suite still passes.
+- Each script below is brought to `Complete` in the `INVENTORY.md` `Help` column: the sections its
+  `Help` cell lists as missing (`SYNOPSIS`, `DESCRIPTION`, `PARAMETER`, `EXAMPLE`, `NOTES`) are added,
+  per STANDARDS R-07 (and R-29 for admin/API scripts: at least two `.EXAMPLE` entries and a
+  `.PARAMETER` for every parameter).
+- The #48 help-grade check passes for each script, and the Pester suite still passes.
 
 ### Help part 12 of 16
 
@@ -362,6 +368,7 @@ included on each title line.
 
 **Scope:**
 
+- `Packages/Office/Get-TaniumClientDirectory-Package.ps1`
 - `Packages/Office/Get-TaniumClientEndpointConfigurationTool-Package.ps1`
 - `Packages/Office/Get-TaniumClientHardening-Package.ps1`
 - `Packages/Office/Get-TaniumClientListenPort-Package.ps1`
@@ -371,15 +378,14 @@ included on each title line.
 - `Packages/Office/Get-TaniumClientSettingCli-Package.ps1`
 - `Packages/Office/Get-TaniumClientSize-Package.ps1`
 - `Packages/Office/Get-TaniumClientSoapPort-Package.ps1`
-- `Packages/Office/Get-TaniumClientTpython-Package.ps1`
 
 **Acceptance criteria:**
 
-- Each script gets a Complete comment-based help block per STANDARDS R-07 (and R-29 for admin/API
-  scripts: at least two `.EXAMPLE` entries and a `.PARAMETER` for every parameter).
-- The missing sections flagged in `INVENTORY.md` (`SYNOPSIS`, `DESCRIPTION`, `PARAMETER`, `EXAMPLE`,
-  `NOTES`) are all present for every script in this part.
-- The #48 help-grade check passes for each script; the Pester suite still passes.
+- Each script below is brought to `Complete` in the `INVENTORY.md` `Help` column: the sections its
+  `Help` cell lists as missing (`SYNOPSIS`, `DESCRIPTION`, `PARAMETER`, `EXAMPLE`, `NOTES`) are added,
+  per STANDARDS R-07 (and R-29 for admin/API scripts: at least two `.EXAMPLE` entries and a
+  `.PARAMETER` for every parameter).
+- The #48 help-grade check passes for each script, and the Pester suite still passes.
 
 ### Help part 13 of 16
 
@@ -389,6 +395,7 @@ included on each title line.
 
 **Scope:**
 
+- `Packages/Office/Get-TaniumClientTpython-Package.ps1`
 - `Packages/Office/Get-TaniumClientTpythonDebug-Package.ps1`
 - `Packages/Office/Get-TaniumClientVdiSetting-Package.ps1`
 - `Packages/Office/Get-TaniumClientVersion-Package.ps1`
@@ -398,15 +405,14 @@ included on each title line.
 - `Packages/Office/Remove-TaniumClientVdiSetting-Package.ps1`
 - `Packages/Office/Restart-TaniumClient-Package.ps1`
 - `Packages/Office/Restart-TaniumClientCx-Package.ps1`
-- `Packages/Office/Set-TaniumClientSetting-Package.ps1`
 
 **Acceptance criteria:**
 
-- Each script gets a Complete comment-based help block per STANDARDS R-07 (and R-29 for admin/API
-  scripts: at least two `.EXAMPLE` entries and a `.PARAMETER` for every parameter).
-- The missing sections flagged in `INVENTORY.md` (`SYNOPSIS`, `DESCRIPTION`, `PARAMETER`, `EXAMPLE`,
-  `NOTES`) are all present for every script in this part.
-- The #48 help-grade check passes for each script; the Pester suite still passes.
+- Each script below is brought to `Complete` in the `INVENTORY.md` `Help` column: the sections its
+  `Help` cell lists as missing (`SYNOPSIS`, `DESCRIPTION`, `PARAMETER`, `EXAMPLE`, `NOTES`) are added,
+  per STANDARDS R-07 (and R-29 for admin/API scripts: at least two `.EXAMPLE` entries and a
+  `.PARAMETER` for every parameter).
+- The #48 help-grade check passes for each script, and the Pester suite still passes.
 
 ### Help part 14 of 16
 
@@ -416,6 +422,7 @@ included on each title line.
 
 **Scope:**
 
+- `Packages/Office/Set-TaniumClientSetting-Package.ps1`
 - `Packages/Office/Set-TaniumClientSettingCli-Package.ps1`
 - `Packages/Office/Set-TaniumClientVdiSetting-Package.ps1`
 - `Packages/Office/Start-TaniumClient-Package.ps1`
@@ -425,15 +432,14 @@ included on each title line.
 - `Packages/Office/Test-TaniumClientPeering-Package.ps1`
 - `Packages/Office/Write-TaniumClientCxMailbox-Package.ps1`
 - `Packages/Registry/Get-TaniumClientRegistryPath-Package.ps1`
-- `Packages/Registry/Get-TaniumClientUninstallRegistry-Package.ps1`
 
 **Acceptance criteria:**
 
-- Each script gets a Complete comment-based help block per STANDARDS R-07 (and R-29 for admin/API
-  scripts: at least two `.EXAMPLE` entries and a `.PARAMETER` for every parameter).
-- The missing sections flagged in `INVENTORY.md` (`SYNOPSIS`, `DESCRIPTION`, `PARAMETER`, `EXAMPLE`,
-  `NOTES`) are all present for every script in this part.
-- The #48 help-grade check passes for each script; the Pester suite still passes.
+- Each script below is brought to `Complete` in the `INVENTORY.md` `Help` column: the sections its
+  `Help` cell lists as missing (`SYNOPSIS`, `DESCRIPTION`, `PARAMETER`, `EXAMPLE`, `NOTES`) are added,
+  per STANDARDS R-07 (and R-29 for admin/API scripts: at least two `.EXAMPLE` entries and a
+  `.PARAMETER` for every parameter).
+- The #48 help-grade check passes for each script, and the Pester suite still passes.
 
 ### Help part 15 of 16
 
@@ -443,6 +449,7 @@ included on each title line.
 
 **Scope:**
 
+- `Packages/Registry/Get-TaniumClientUninstallRegistry-Package.ps1`
 - `Packages/System/DisableSMBv3Compression.ps1`
 - `Packages/System/EnableSMBv3Compression.ps1`
 - `Packages/System/Get-TaniumClientProcessLoadedModules-Package.ps1`
@@ -452,15 +459,14 @@ included on each title line.
 - `Sensors/Get-ComputerInfo.ps1`
 - `Sensors/Get-PrimaryUserManager.ps1`
 - `Sensors/Get-RateLimitStatus.ps1`
-- `Sensors/GetLastLoggedInUserDetails.ps1`
 
 **Acceptance criteria:**
 
-- Each script gets a Complete comment-based help block per STANDARDS R-07 (and R-29 for admin/API
-  scripts: at least two `.EXAMPLE` entries and a `.PARAMETER` for every parameter).
-- The missing sections flagged in `INVENTORY.md` (`SYNOPSIS`, `DESCRIPTION`, `PARAMETER`, `EXAMPLE`,
-  `NOTES`) are all present for every script in this part.
-- The #48 help-grade check passes for each script; the Pester suite still passes.
+- Each script below is brought to `Complete` in the `INVENTORY.md` `Help` column: the sections its
+  `Help` cell lists as missing (`SYNOPSIS`, `DESCRIPTION`, `PARAMETER`, `EXAMPLE`, `NOTES`) are added,
+  per STANDARDS R-07 (and R-29 for admin/API scripts: at least two `.EXAMPLE` entries and a
+  `.PARAMETER` for every parameter).
+- The #48 help-grade check passes for each script, and the Pester suite still passes.
 
 ### Help part 16 of 16
 
@@ -470,6 +476,7 @@ included on each title line.
 
 **Scope:**
 
+- `Sensors/GetLastLoggedInUserDetails.ps1`
 - `Sensors/GetOSBrandName.ps1`
 - `Sensors/GetOSSetupDate.ps1`
 - `Sensors/GetPrimaryUserLocation.ps1`
@@ -479,14 +486,17 @@ included on each title line.
 
 **Acceptance criteria:**
 
-- Each script gets a Complete comment-based help block per STANDARDS R-07 (and R-29 for admin/API
-  scripts: at least two `.EXAMPLE` entries and a `.PARAMETER` for every parameter).
-- The missing sections flagged in `INVENTORY.md` (`SYNOPSIS`, `DESCRIPTION`, `PARAMETER`, `EXAMPLE`,
-  `NOTES`) are all present for every script in this part.
-- The #48 help-grade check passes for each script; the Pester suite still passes.
+- Each script below is brought to `Complete` in the `INVENTORY.md` `Help` column: the sections its
+  `Help` cell lists as missing (`SYNOPSIS`, `DESCRIPTION`, `PARAMETER`, `EXAMPLE`, `NOTES`) are added,
+  per STANDARDS R-07 (and R-29 for admin/API scripts: at least two `.EXAMPLE` entries and a
+  `.PARAMETER` for every parameter).
+- The #48 help-grade check passes for each script, and the Pester suite still passes.
 
 
 ## Test parts (epic #62, milestone M7)
+
+Survivors are the rows whose Decision is `keep`, `fix`, or `move`. Every survivor is listed here
+because it has only a parse-only test stub today, not a behavior test.
 
 ### Test part 1 of 17
 
@@ -739,7 +749,7 @@ included on each title line.
 - `Modules/TaniumDeployPackage/TaniumDeployPackage.psm1`
 - `Packages/FileSystem/Get-PrimaryorLoggedInUserProfilePath-Package.ps1`
 - `Packages/FileSystem/Get-TaniumClientFileModificationTime-Package.ps1`
-- `Packages/General/New-TaniumClientEndUserNotification-Package.ps1`
+- `Packages/General/CreateChromeBackupScheduledTask-Package.ps1`
 
 **Acceptance criteria:**
 
@@ -756,6 +766,7 @@ included on each title line.
 
 **Scope:**
 
+- `Packages/General/New-TaniumClientEndUserNotification-Package.ps1`
 - `Packages/General/Read-TaniumClientCxMailbox-Package.ps1`
 - `Packages/Maintenance/Remove-ExpiredRateLimits-Package.ps1`
 - `Packages/Office/Disable-TaniumClientActionLock-Package.ps1`
@@ -765,7 +776,6 @@ included on each title line.
 - `Packages/Office/Get-TaniumClient-Package.ps1`
 - `Packages/Office/Get-TaniumClientActionHistoryStatistics-Package.ps1`
 - `Packages/Office/Get-TaniumClientActionLock-Package.ps1`
-- `Packages/Office/Get-TaniumClientApiToken-Package.ps1`
 
 **Acceptance criteria:**
 
@@ -782,6 +792,7 @@ included on each title line.
 
 **Scope:**
 
+- `Packages/Office/Get-TaniumClientApiToken-Package.ps1`
 - `Packages/Office/Get-TaniumClientCustomTag-Package.ps1`
 - `Packages/Office/Get-TaniumClientCxConfigurationManifestRevision-Package.ps1`
 - `Packages/Office/Get-TaniumClientDbTable-Package.ps1`
@@ -791,7 +802,6 @@ included on each title line.
 - `Packages/Office/Get-TaniumClientListenPort-Package.ps1`
 - `Packages/Office/Get-TaniumClientLog-Package.ps1`
 - `Packages/Office/Get-TaniumClientSensorHistoryStatistics-Package.ps1`
-- `Packages/Office/Get-TaniumClientSetting-Package.ps1`
 
 **Acceptance criteria:**
 
@@ -808,6 +818,7 @@ included on each title line.
 
 **Scope:**
 
+- `Packages/Office/Get-TaniumClientSetting-Package.ps1`
 - `Packages/Office/Get-TaniumClientSettingCli-Package.ps1`
 - `Packages/Office/Get-TaniumClientSize-Package.ps1`
 - `Packages/Office/Get-TaniumClientSoapPort-Package.ps1`
@@ -817,7 +828,6 @@ included on each title line.
 - `Packages/Office/Get-TaniumClientVersion-Package.ps1`
 - `Packages/Office/New-TaniumClientCustomTag-Package.ps1`
 - `Packages/Office/Remove-TaniumClientCustomTag-Package.ps1`
-- `Packages/Office/Remove-TaniumClientSetting-Package.ps1`
 
 **Acceptance criteria:**
 
@@ -834,6 +844,7 @@ included on each title line.
 
 **Scope:**
 
+- `Packages/Office/Remove-TaniumClientSetting-Package.ps1`
 - `Packages/Office/Remove-TaniumClientVdiSetting-Package.ps1`
 - `Packages/Office/Restart-TaniumClient-Package.ps1`
 - `Packages/Office/Restart-TaniumClientCx-Package.ps1`
@@ -843,7 +854,6 @@ included on each title line.
 - `Packages/Office/Start-TaniumClient-Package.ps1`
 - `Packages/Office/TaniumClient.psd1-Package.ps1`
 - `Packages/Office/Test-Office64bit-Package.ps1`
-- `Packages/Office/Test-TaniumClientDirectoryAccess-Package.ps1`
 
 **Acceptance criteria:**
 
@@ -860,6 +870,7 @@ included on each title line.
 
 **Scope:**
 
+- `Packages/Office/Test-TaniumClientDirectoryAccess-Package.ps1`
 - `Packages/Office/Test-TaniumClientPeering-Package.ps1`
 - `Packages/Office/Write-TaniumClientCxMailbox-Package.ps1`
 - `Packages/Registry/Get-TaniumClientRegistryPath-Package.ps1`
@@ -869,7 +880,6 @@ included on each title line.
 - `Packages/System/Get-TaniumClientProcessLoadedModules-Package.ps1`
 - `Packages/System/GetWindows10OSSKU-Package.ps1`
 - `Packages/System/parseCBSLOG-Package.ps1`
-- `Packages/Templates/RateLimiting-Helpers.ps1`
 
 **Acceptance criteria:**
 
@@ -886,6 +896,7 @@ included on each title line.
 
 **Scope:**
 
+- `Packages/Templates/RateLimiting-Helpers.ps1`
 - `Sensors/Get-ComputerInfo.ps1`
 - `Sensors/Get-PrimaryUserManager.ps1`
 - `Sensors/Get-RateLimitStatus.ps1`
@@ -895,7 +906,6 @@ included on each title line.
 - `Sensors/GetPrimaryUserLocation.ps1`
 - `Sensors/GetSystemDriveBusandMediaType.ps1`
 - `Sensors/Get_SecureBootStatus.ps1`
-- `Sensors/HasWirelessAdapter.ps1`
 
 **Acceptance criteria:**
 
@@ -912,6 +922,7 @@ included on each title line.
 
 **Scope:**
 
+- `Sensors/HasWirelessAdapter.ps1`
 - `Sensors/System/MIGPendingRebootforTanium-Sensor.ps1`
 
 **Acceptance criteria:**
