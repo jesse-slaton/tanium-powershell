@@ -88,6 +88,22 @@ See [DEV_ENVIRONMENT.md](./DEV_ENVIRONMENT.md) for:
 3. Add comment-based help to all functions
 4. Run PSScriptAnalyzer before committing
 5. Create feature branches for changes
+6. Never commit a credential. Every pull request is scanned with
+   [gitleaks](https://github.com/gitleaks/gitleaks) using the rules in `.gitleaks.toml`
+   (the gitleaks defaults plus PowerShell patterns such as
+   `ConvertTo-SecureString -AsPlainText`, connection-string passwords and literal
+   `-Password` or `-Token` values). If the scan flags a harmless value, fix the rule or
+   the value first. As a last resort for a real false positive, add a `gitleaks:allow`
+   comment on the same line, and say why in the pull request. CI ignores that comment
+   and any `.gitleaksignore` file, so it only silences a local `gitleaks` run. To let a
+   value through in CI, an allowlist entry in `.gitleaks.toml` must merge first (the
+   scan uses the copy of that file from the pull request's base commit).
+7. Keep UTF-16 out of the repository. Secret scanners cannot read it, so CI fails any added
+   or changed file, of any type, that starts with a UTF-16 byte order mark. `.ps1`, `.psm1`
+   and `.psd1` files must also be UTF-8 (with a byte order mark when they hold non-ASCII
+   text), never UTF-16 without a byte order mark either. `Tests/Encoding.Tests.ps1` is the
+   fast local check, and the Gitleaks workflow enforces both rules on every commit of a pull
+   request, so re-encoding the file in a later commit does not clear it.
 
 ## Documentation
 

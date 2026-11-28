@@ -153,3 +153,55 @@ Describe 'Get-ScriptParseResult' {
         Test-Path -LiteralPath $marker | Should -BeFalse
     }
 }
+
+Describe 'Get-PowerShellEncodingProblem' {
+    BeforeAll {
+        $script:Bom = [byte[]](0xEF, 0xBB, 0xBF)
+        # 'caf' + U+00E9 + newline, as UTF-8 bytes: non-ASCII text.
+        $script:NonAscii = [byte[]](0x63, 0x61, 0x66, 0xC3, 0xA9, 0x0A)
+        $script:Ascii = [System.Text.Encoding]::ASCII.GetBytes("Write-Output 'hi'`r`n`t`f")
+    }
+
+    It 'passes <Case>' -TestCases @(
+        @{ Case = 'pure ASCII without a BOM'; Make = { $script:Ascii } }
+        @{ Case = 'pure ASCII with a BOM'; Make = { [byte[]]($script:Bom + $script:Ascii) } }
+        @{ Case = 'non-ASCII UTF-8 with a BOM'; Make = { [byte[]]($script:Bom + $script:NonAscii) } }
+        @{ Case = 'a file that is only a BOM'; Make = { $script:Bom } }
+        @{ Case = 'an empty file'; Make = { [byte[]]@() } }
+    ) {
+        # @() then [byte[]]: an empty array returned from a scriptblock would otherwise unroll to $null.
+        $bytes = [byte[]]@(& $Make)
+        Get-PowerShellEncodingProblem -Bytes $bytes | Should -BeNullOrEmpty
+    }
+
+    It 'rejects <Case>' -TestCases @(
+        @{ Case = 'non-ASCII UTF-8 without a BOM'; Expected = 'non-ASCII UTF-8 text without a byte order mark*'; Make = { $script:NonAscii } }
+        @{ Case = 'UTF-16LE with a BOM'; Expected = 'UTF-16LE byte order mark'; Make = { [byte[]](0xFF, 0xFE, 0x41, 0x00) } }
+        @{ Case = 'UTF-16BE with a BOM'; Expected = 'UTF-16BE byte order mark'; Make = { [byte[]](0xFE, 0xFF, 0x00, 0x41) } }
+        @{ Case = 'BOM-less UTF-16LE ASCII text'; Expected = 'control character other than tab, LF, FF or CR*'; Make = { [System.Text.Encoding]::Unicode.GetBytes('param()') } }
+        @{ Case = 'BOM-less UTF-16BE ASCII text'; Expected = 'control character other than tab, LF, FF or CR*'; Make = { [System.Text.Encoding]::BigEndianUnicode.GetBytes('param()') } }
+        @{ Case = 'invalid UTF-8'; Expected = 'not valid UTF-8*'; Make = { [byte[]](0x41, 0xC3, 0x28) } }
+        @{ Case = 'a DEL byte (U+007F) in ASCII text'; Expected = 'control character other than tab, LF, FF or CR*'; Make = { [byte[]](0x41, 0x7F, 0x42) } }
+        @{ Case = 'a C1 control (U+0085) in BOM-prefixed UTF-8'; Expected = 'control character other than tab, LF, FF or CR*'; Make = { [byte[]](0xEF, 0xBB, 0xBF, 0x41, 0xC2, 0x85, 0x42) } }
+        @{ Case = 'a control byte in ASCII text'; Expected = 'control character other than tab, LF, FF or CR*'; Make = { [byte[]](0x41, 0x01, 0x42) } }
+    ) {
+        $bytes = [byte[]]@(& $Make)
+        Get-PowerShellEncodingProblem -Bytes $bytes | Should -BeLike $Expected
+    }
+}
+
+Describe 'Get-Utf16ByteOrderMark' {
+    It 'classifies <Case> as <Expected>' -TestCases @(
+        @{ Case = 'a UTF-16LE BOM'; Expected = 'UTF-16LE'; Make = { [byte[]](0xFF, 0xFE, 0x41, 0x00) } }
+        @{ Case = 'a UTF-16BE BOM'; Expected = 'UTF-16BE'; Make = { [byte[]](0xFE, 0xFF, 0x00, 0x41) } }
+        @{ Case = 'just the two LE BOM bytes'; Expected = 'UTF-16LE'; Make = { [byte[]](0xFF, 0xFE) } }
+        @{ Case = 'a UTF-8 BOM'; Expected = ''; Make = { [byte[]](0xEF, 0xBB, 0xBF, 0x41) } }
+        @{ Case = 'an empty file'; Expected = ''; Make = { [byte[]]@() } }
+        @{ Case = 'a one-byte file starting FF'; Expected = ''; Make = { [byte[]](0xFF) } }
+        @{ Case = 'plain ASCII'; Expected = ''; Make = { [byte[]](0x68, 0x69) } }
+    ) {
+        $bytes = [byte[]]@(& $Make)
+        $result = Get-Utf16ByteOrderMark -Bytes $bytes
+        if ($Expected) { $result | Should -Be $Expected } else { $result | Should -BeNullOrEmpty }
+    }
+}

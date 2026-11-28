@@ -1,0 +1,257 @@
+name: Gitleaks
+
+# pull_request_target, not pull_request: a pull_request run uses the PR's own copy of this file,
+# so a PR could edit or delete its own scan. pull_request_target runs the copy on the base branch.
+# That event is safe here because no PR code ever runs: the PR's commits are fetched as git objects
+# and only read by gitleaks, never checked out, built or executed. The token is read-only
+# (contents: read), no secret is used, and the rules come from the base (see .gitleaks.toml).
+on: # zizmor: ignore[dangerous-triggers] no PR code is checked out or run, only read as git objects, see the note above
+  pull_request_target:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+# One group per pull request, so a new push to a PR cancels its stale run. Every push to main gets
+# its own group (the run id): each push run scans only before..sha, so a push run must never be
+# cancelled or left pending behind another, or its commits would never be scanned. github.ref is
+# not usable here, because under pull_request_target it is the base branch for every PR.
+concurrency:
+  group: gitleaks-${{ github.event_name == 'push' && format('push-{0}', github.run_id) || format('pr-{0}', github.event.pull_request.number) }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request_target' }}
+
+env:
+  # gitleaks release binary, verified against the release's published
+  # gitleaks_<version>_checksums.txt before it runs. Bump both together.
+  GITLEAKS_VERSION: 8.30.1
+  GITLEAKS_SHA256: 551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb
+
+jobs:
+  gitleaks:
+    name: gitleaks
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      # Checks out the base branch tip (GITHUB_SHA under pull_request_target) or the pushed commit,
+      # never the PR head.
+      - name: Check out
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      # The PR head commits, fork PRs included, are fetched into the object store only, with no
+      # checkout, so no file from the PR is ever written to the workspace. GitHub serves a PR head
+      # by SHA from the base repository. The fetch is anonymous (persist-credentials is false), so
+      # it needs a public repository; on a private one it fails and fails the job.
+      - name: Fetch pull request head
+        if: github.event_name == 'pull_request_target'
+        env:
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          case "$PR_HEAD_SHA" in
+            *[!0-9a-f]* | '') echo "::error::pull request head '$PR_HEAD_SHA' is not a commit SHA"; exit 1 ;;
+          esac
+          if ! git fetch --no-tags origin "$PR_HEAD_SHA"; then
+            echo "::error::cannot fetch pull request head ${PR_HEAD_SHA}; refusing to pass an unscanned PR"
+            exit 1
+          fi
+
+      - name: Install gitleaks
+        run: |
+          set -euo pipefail
+          dir="$RUNNER_TEMP/gitleaks"
+          mkdir -p "$dir"
+          tarball="gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
+          curl -fsSL -o "$dir/$tarball" \
+            "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/${tarball}"
+          echo "${GITLEAKS_SHA256}  $dir/$tarball" | sha256sum -c -
+          tar -xzf "$dir/$tarball" -C "$dir" gitleaks
+          echo "$dir" >> "$GITHUB_PATH"
+
+      - name: Scan new commits
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          PUSH_BEFORE_SHA: ${{ github.event.before }}
+          PUSH_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          gitleaks version
+          zero=0000000000000000000000000000000000000000
+
+          # gitleaks exits 0 when git log fails ("0 commits scanned"), so every commit is
+          # checked here first and an unreadable range fails the job instead of passing it.
+          require_commit() {
+            if [ -z "$1" ] || ! git cat-file -e "$1^{commit}" 2>/dev/null; then
+              echo "::error::$2 commit '$1' is not in the clone; refusing to scan an unreadable range"
+              exit 1
+            fi
+          }
+
+          if [ "$EVENT_NAME" = "pull_request_target" ]; then
+            require_commit "$PR_BASE_SHA" "pull request base"
+            require_commit "$PR_HEAD_SHA" "pull request head"
+            range="${PR_BASE_SHA}..${PR_HEAD_SHA}"
+            scanned_sha="$PR_HEAD_SHA"
+            config_sha="$PR_BASE_SHA"
+          elif [ "$EVENT_NAME" = "push" ]; then
+            require_commit "$PUSH_SHA" "pushed"
+            # Only a fast-forward push has a trusted, already-scanned previous commit. After a
+            # force push the old commit can still be in the clone (another ref), but it is not an
+            # ancestor, so before..sha would skip the rewritten commits. main is protected against
+            # force push and deletion, so a push without an ancestor is abnormal: fail loudly
+            # rather than scan with rules taken from the pushed commit itself.
+            if [ -z "$PUSH_BEFORE_SHA" ] || [ "$PUSH_BEFORE_SHA" = "$zero" ] ||
+              ! git cat-file -e "${PUSH_BEFORE_SHA}^{commit}" 2>/dev/null ||
+              ! git merge-base --is-ancestor "$PUSH_BEFORE_SHA" "$PUSH_SHA"; then
+              echo "::error::previous commit '${PUSH_BEFORE_SHA}' is not an ancestor of ${PUSH_SHA} (new branch or force push?); there is no trusted range or rules source, so it is not scanned automatically; scan the history of ${PUSH_SHA} by hand"
+              exit 1
+            fi
+            range="${PUSH_BEFORE_SHA}..${PUSH_SHA}"
+            config_sha="$PUSH_BEFORE_SHA"
+            scanned_sha="$PUSH_SHA"
+          else
+            echo "::error::unexpected event '${EVENT_NAME}'; refusing to guess a scan range"
+            exit 1
+          fi
+          if ! count=$(git rev-list --count "$range" 2>/dev/null); then
+            echo "::error::git rev-list cannot read the range '${range}'; refusing to scan it"
+            exit 1
+          fi
+          echo "Range ${range}: ${count} commits"
+
+          # Scan 1 (gates every change): rules come from the base, not from the change under scan,
+          # so a change cannot weaken its own scan (see the trust model in .gitleaks.toml).
+          config="$RUNNER_TEMP/gitleaks.toml"
+          # A base without .gitleaks.toml gets the built-in gitleaks rules, never the scanned
+          # change's copy, which that change controls.
+          if git cat-file -e "${config_sha}:.gitleaks.toml" 2>/dev/null; then
+            git show "${config_sha}:.gitleaks.toml" > "$config"
+            echo "Rules: .gitleaks.toml from ${config_sha}"
+          else
+            printf '[extend]\nuseDefault = true\n' > "$config"
+            echo "::warning::${config_sha} has no .gitleaks.toml; scanning ${scanned_sha} with the built-in gitleaks rules only"
+          fi
+
+          # Ignore inline gitleaks:allow comments and any .gitleaksignore. gitleaks reads
+          # <source>/.gitleaksignore even when --gitleaks-ignore-path is set, so the checkout's
+          # copy is deleted (this checkout is disposable) and the flag points at an empty file.
+          rm -rf -- .gitleaksignore
+          ignore="$RUNNER_TEMP/empty.gitleaksignore"
+          : > "$ignore"
+
+          # first-parent: git log -p shows no diff for a merge commit, so without it a secret
+          # added in a merge commit would not be scanned.
+          log_opts="--diff-merges=first-parent ${range}"
+
+          run_scan() {
+            echo "Scanning: git log ${log_opts} (rules: $1)"
+            gitleaks git --no-banner --redact --exit-code 1 \
+              --config "$2" --ignore-gitleaks-allow --gitleaks-ignore-path "$ignore" \
+              --log-opts="${log_opts}" .
+          }
+
+          status=0
+
+          # UTF-16 check (the Pester test in Tests/Encoding.Tests.ps1 is the fast local check; this
+          # is the enforcement). Byte-based scanners cannot read UTF-16, and the Pester test sees
+          # only the final tree and runs from the PR's own workflow. This reads only git objects of
+          # every commit in the range, diffed against the first parent like the gitleaks scan, and
+          # runs from the base checkout, so nothing from the change is executed. It fails for any
+          # added or modified file of ANY type that starts with a UTF-16 byte order mark (FF FE or
+          # FE FF), because secret scanners cannot read UTF-16 in any file, and for a .ps1, .psm1
+          # or .psd1 file that holds a NUL byte (UTF-16 without a BOM; other files such as images
+          # hold NULs legitimately). File contents are never printed, and paths are shell-quoted
+          # (printf %q) so a control character in a name stays on one line.
+          blobs="$RUNNER_TEMP/range-blobs.txt"
+          : > "$blobs"
+          for c in $(git rev-list "$range"); do
+            if git rev-parse --verify --quiet "${c}^1" > /dev/null; then
+              tree_args=("${c}^1" "$c")
+            else
+              tree_args=(--root "$c")
+            fi
+            git diff-tree -r -z --no-commit-id --no-renames --diff-filter=AM "${tree_args[@]}" |
+              while IFS= read -r -d '' meta && IFS= read -r -d '' path; do
+                # meta is ":<old mode> <new mode> <old sha> <new sha> <status>"
+                read -r _ new_mode _ new_sha _ <<< "$meta"
+                # Skip submodule entries (mode 160000); they are not blobs.
+                [ "$new_mode" = "160000" ] && continue
+                # Decide ps/other here, while the path is still NUL-delimited and intact. The
+                # record then holds no raw path: a newline in a file name must not split it or
+                # lose the .ps1 association. The escaped name is for messages only.
+                lower=$(printf '%s' "$path" | tr '[:upper:]' '[:lower:]')
+                case "$lower" in
+                  *.ps1 | *.psm1 | *.psd1) kind='ps' ;;
+                  *) kind=other ;;
+                esac
+                printf '%s %s %s %q\n' "$new_sha" "$c" "$kind" "$path" >> "$blobs"
+              done
+          done
+          verdicts="$RUNNER_TEMP/blob-verdicts.txt"
+          : > "$verdicts"
+          cut -d' ' -f1 "$blobs" | sort -u | while read -r blob; do
+            head2=$(git cat-file blob "$blob" | head -c2 | od -An -tx1 | tr -d ' \n' || true)
+            case "$head2" in
+              fffe) echo "$blob UTF-16LE byte order mark" >> "$verdicts" ;;
+              feff) echo "$blob UTF-16BE byte order mark" >> "$verdicts" ;;
+              *)
+                size=$(git cat-file -s "$blob")
+                nonnul=$(git cat-file blob "$blob" | LC_ALL=C tr -d '\000' | wc -c)
+                if [ "$size" -ne "$nonnul" ]; then
+                  echo "$blob NUL byte" >> "$verdicts"
+                fi
+                ;;
+            esac
+          done
+          utf16_bad=0
+          while read -r blob c kind path; do
+            reason=$(grep "^${blob} " "$verdicts" | head -n1 | cut -d' ' -f2- || true)
+            [ -z "$reason" ] && continue
+            if [ "$reason" = "NUL byte" ]; then
+              [ "$kind" = ps ] || continue
+              reason="NUL byte in a PowerShell file (UTF-16 without a byte order mark?)"
+            fi
+            echo "::error::${path} at commit ${c}: ${reason}; PowerShell files must be UTF-8, because secret scanners cannot read UTF-16"
+            utf16_bad=1
+          done < "$blobs"
+          if [ "$utf16_bad" -ne 0 ]; then status=1; fi
+          run_scan "base .gitleaks.toml at ${config_sha}" "$config" || status=$?
+
+          # Scan 2 (can only add findings): the same range once more for every OTHER version of
+          # .gitleaks.toml that exists at any commit in the range, not just the tip. A change that
+          # adds a rule and a matching secret in one commit, then restores the base file in a
+          # later commit, is still scanned with the rule. Without these scans, the change that
+          # adds the file would only ever be scanned with built-in rules. Scan 1 still gates, so a
+          # change cannot weaken its own scan. gitleaks only parses these TOML files; the shell
+          # never executes anything from them. A malformed copy makes gitleaks error, which fails
+          # the job.
+          base_blob=$(git rev-parse --verify --quiet "${config_sha}:.gitleaks.toml" || true)
+          versions="$RUNNER_TEMP/config-versions.txt"
+          : > "$versions"
+          for c in $(git rev-list "$range"); do
+            blob=$(git rev-parse --verify --quiet "${c}:.gitleaks.toml" || true)
+            if [ -n "$blob" ] && [ "$blob" != "$base_blob" ]; then
+              echo "$blob $c" >> "$versions"
+            fi
+          done
+          # One line per distinct blob, keeping the first commit it appears in.
+          sort -u -k1,1 "$versions" > "$versions.uniq"
+          if [ ! -s "$versions.uniq" ]; then
+            echo "No .gitleaks.toml version in ${range} differs from the base; one scan is enough"
+          fi
+          while read -r blob c; do
+            own_config="$RUNNER_TEMP/gitleaks.${blob}.toml"
+            git cat-file blob "$blob" > "$own_config"
+            run_scan "change's own .gitleaks.toml, blob ${blob} (first seen at ${c})" "$own_config" || status=$?
+          done < "$versions.uniq"
+
+          if [ "$status" -ne 0 ]; then
+            echo "::error::gitleaks found leaks or failed (exit ${status}); see the scan output above"
+          fi
+          exit "$status"

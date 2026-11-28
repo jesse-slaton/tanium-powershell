@@ -1,0 +1,103 @@
+# Custom gitleaks rules, on top of the defaults. The defaults miss PowerShell-style credentials,
+# such as a password in a SQL connection string or a literal passed to -Password, so these rules
+# add them. Issue #34.
+#
+# Trust model: CI (.github/workflows/gitleaks.yml) gates every change with the copy of this file
+# from the PR's base commit (for a push to main, the commit before the push), so a change cannot
+# weaken the rules that scan it. When the change's own copy differs, CI runs a second scan with it.
+# That scan can only add findings, so a rule change and a secret it catches are reported in the
+# same change. gitleaks only parses the file; nothing in it is executed by the shell. CI also
+# ignores inline gitleaks:allow comments and any .gitleaksignore file. A base with no .gitleaks.toml
+# at all gets the built-in gitleaks rules for the gating scan, and CI logs a warning (the second
+# scan then covers the change that adds this file). A push to main whose previous commit is not an ancestor fails instead of being scanned.
+
+[extend]
+useDefault = true
+
+# SECURITY.md shows an intentionally vulnerable example next to its safer replacement. Pinned to
+# that file and that exact value (whole-match anchors), so a real password literal anywhere else is still reported.
+[[allowlists]]
+description = "Example password in the SECURITY.md vulnerable-code sample"
+targetRules = ["password-assignment-literal"]
+condition = "AND"
+paths = ['''(?:^|/)SECURITY\.md$''']
+regexes = ['''^P@ssw0rd123$''']
+
+# The Win10 upgrade package passes Microsoft's published generic volume-license setup key for the
+# Enterprise SKU (the KMS client setup keys page is linked in the script). It is public, not a
+# secret. Pinned to this file name (the file has moved folders) and this exact key (whole-match anchors).
+[[allowlists]]
+description = "Public Microsoft KMS client setup key in the Win10 upgrade package"
+targetRules = ["generic-api-key"]
+condition = "AND"
+paths = ['''(?:^|/)Invoke-Win10Upgrade-Package\.ps1$''']
+regexes = ['''^NPPR9-FWDCX-D2C8J-H872K-2YT43$''']
+
+[[rules]]
+id = "connection-string-password"
+description = "Password in a database connection string, after the server or user key"
+regex = '''(?i)(?:user\s*id|uid|server|data\s*source|initial\s*catalog|database)\s*=[^;\r\n]*;[^\r\n]*?\b(?:password|pwd)\s*=\s*(?:'((?:[^'\s+]|\+[^'\s$])[^'\r\n]{2,})'|"([^"\s+][^"\r\n]{2,})"|([^;'"\s]{3,}))'''
+[rules.allowlist]
+# The value may be 'quoted', "quoted" or bare. No secretGroup: gitleaks reports the first capture
+# group that matched. A quoted capture may not start with a space, so concatenation such as
+# "...;Password=" + $pw + ";" is not a value; it may not start with + either, except in single
+# quotes when the + is not followed by a $ ('+hunter2' is a value, '+$pw+' is concatenation).
+# Format placeholders and PowerShell expressions such as $($cred.GetNetworkCredential().Password).
+regexes = ['''(?i)^(?:\{\d+\}|\$[\w:{}().$]+|REDACTED\w*|<[^>]+>|\*+|x{3,})$''']
+
+[[rules]]
+id = "connection-string-password-first"
+description = "Password in a database connection string, before the server or user key"
+regex = '''(?i)\b(?:password|pwd)\s*=\s*(?:'((?:[^'\s+]|\+[^'\s$])[^'\r\n]{2,})'|"([^"\s+][^"\r\n]{2,})"|([^;'"\s]{3,}))\s*;[^\r\n]*?\b(?:user\s*id|uid|server|data\s*source|initial\s*catalog|database)\s*='''
+[rules.allowlist]
+regexes = ['''(?i)^(?:\{\d+\}|\$[\w:{}().$]+|REDACTED\w*|<[^>]+>|\*+|x{3,})$''']
+
+# The PowerShell literal rules below: in 'single quotes' a $ is literal text, so the value may
+# contain one, and even a value shaped like '$name' is reported (it is a literal string, not a
+# variable). A "double-quoted" value with an unescaped $ is expanded at run time, so it is not
+# reported; a backtick-escaped dollar (`$) is a literal character and is still reported.
+# A single-quoted capture keeps its quotes ('...'): gitleaks' built-in global allowlist exempts
+# any secret shaped like a bare $name template variable, which would hide '$name' literals.
+# The placeholder allowlists below accept those quotes.
+[[rules]]
+id = "powershell-plaintext-securestring"
+description = "Literal string converted with ConvertTo-SecureString -AsPlainText"
+regex = '''(?i)ConvertTo-SecureString\s+(?:-String\s+)?(?:('[^'\r\n]{4,}')|"((?:`\$|[^"$\r\n]){4,})")[^\r\n]*-AsPlainText'''
+
+[[rules]]
+id = "powershell-plaintext-securestring-after"
+description = "Literal string after -AsPlainText in a ConvertTo-SecureString call"
+regex = '''(?i)ConvertTo-SecureString(?:\s+-\w+)*\s+-AsPlainText(?:\s+-\w+)*\s+(?:('[^'\r\n]{4,}')|"((?:`\$|[^"$\r\n]){4,})")'''
+
+[[rules]]
+id = "powershell-plaintext-securestring-piped"
+description = "Literal string piped to ConvertTo-SecureString -AsPlainText"
+# The literal must start an expression (line start, =, (, { or ;), so Get-Content 'C:\pw.txt' | ...
+# is not reported.
+regex = '''(?im)(?:^|[=({;])\s*(?:('[^'\r\n]{4,}')|"((?:`\$|[^"$\r\n]){4,})")\s*\|\s*ConvertTo-SecureString\b[^\r\n]*-AsPlainText'''
+
+[[rules]]
+id = "powershell-password-literal-arg"
+description = "Literal value passed to a -Password style parameter"
+# The value may follow a space or a colon (-Password:'x'), and may be quoted or bare
+# (-Password P@ssw0rd). A bare value starting with $, (, @ or { is a variable or expression, so it
+# is not reported. A value containing < is still reported; only a whole <placeholder> is exempt.
+regex = '''(?i)\s-(?:Password|Passwd|Pwd|Pass|Secret|ApiKey|Token)(?:\s+|:\s*)(?:('[^'\r\n]{4,}')|"((?:`\$|[^"$\r\n]){4,})"|([^\s'"$(@{`|;,)#][^\s'"`|;,)#]{3,}))'''
+[[rules.allowlists]]
+# Only a whole placeholder word is exempt (your-password-here, changeme, ***), never a value that
+# merely starts with my, test or sample. Test files get no path exemption: a test that needs a
+# fake key uses one of these placeholder words.
+regexes = ['''(?i)^'?(?:(?:your|my|test|fake|dummy|example|sample|placeholder)[-_ ]?(?:password|pass|pwd|secret|token|key|api[-_ ]?key)(?:[-_ ]?here)?|(?:your|the|enter)?[-_ ]?(?:password|secret|token|api[-_ ]?key|key)[-_ ]?here|(?:api[-_ ]?)?key|password|secret|token|changeme|placeholder|REDACTED\w*|<[^<>\s]+>|x{3,}|\*+)'?$''']
+
+[[rules]]
+id = "password-assignment-literal"
+description = "Variable or hashtable key named like a password assigned a literal string"
+regex = '''(?im)(?:\$(?:\w+:)?(?:\w*(?:password|passwd|secret|apikey|token)\w*|\w*pw|\w+pwd|\w*pass)|(?:^|[;{(,\s])['"]?(?:password|passwd|pwd)['"]?)\s*=\s*(?:('[^'\r\n]{4,}')|"((?:`\$|[^"$\r\n]){4,})")'''
+[[rules.allowlists]]
+# Names that hold metadata about a credential, not the credential: $tokenType, $secretName,
+# $passwordFile, $TokenEndpoint, $passwordPolicy and similar. $env:GIT_ASKPASS and SSH_ASKPASS name a
+# helper program, not a password.
+regexTarget = "match"
+regexes = ['''(?i)^\$(?:\w+:)?\w*(?:askpass|type|name|file|path|dir|folder|uri|url|endpoint|policy|length|count|prompt|header|id|label|field|format|expiry|expiration|lifetime|version|mode|kind|pattern|regex|scope|audience|issuer|property|column|attribute|param|parameter)\s*=''']
+[[rules.allowlists]]
+regexes = ['''(?i)^'?(?:(?:your|my|test|fake|dummy|example|sample|placeholder)[-_ ]?(?:password|pass|pwd|secret|token|key|api[-_ ]?key)(?:[-_ ]?here)?|(?:your|the|enter)?[-_ ]?(?:password|secret|token|api[-_ ]?key|key)[-_ ]?here|REDACTED\w*|<[^<>\s]+>|changeme|password|placeholder|x{3,}|\*+)'?$''']
