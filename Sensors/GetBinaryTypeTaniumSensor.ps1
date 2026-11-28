@@ -41,20 +41,6 @@
 #>
 
 
-function Get-PEInfo {
-    param(
-        [Parameter(Mandatory = $true, Position = 0)]
-        [string]$filename
-    )
-
-    [Uint16]$IMAGE_DOS_SIGNATURE = 0x5A4D
-    [Uint16]$IMAGE_NT_OPTIONAL_HDR32_MAGIC = 0x10b
-    [UInt16]$IMAGE_NT_OPTIONAL_HDR64_MAGIC = 0x20b
-    [UInt16]$IMAGE_ROM_OPTIONAL_HDR_MAGIC = 0x107
-    [Uint16]$IMAGE_NUMBEROF_DIRECTORY_ENTRIES = 16
-    [Uint16]$IMAGE_SIZEOF_SHORT_NAME = 8
-    [Uint16]$IMAGE_SIZEOF_SECTION_HEADER = 40
- 
     enum IMAGE_FILE_MACHINE {
         IMAGE_FILE_RELOCS_STRIPPED = 0x0001  # Relocation info stripped from file.
         IMAGE_FILE_EXECUTABLE_IMAGE = 0x0002  # File is executable  (i.e. no unresolved external references).
@@ -216,6 +202,20 @@ function Get-PEInfo {
         IMAGE_SCN_SCALE_INDEX = 0x00000001  #  Tls index is scaled
  
     }
+
+function Get-PEInfo {
+    param(
+        [Parameter(Mandatory = $true, Position = 0)]
+        [string]$filename
+    )
+
+    [Uint16]$IMAGE_DOS_SIGNATURE = 0x5A4D
+    [Uint16]$IMAGE_NT_OPTIONAL_HDR32_MAGIC = 0x10b
+    [UInt16]$IMAGE_NT_OPTIONAL_HDR64_MAGIC = 0x20b
+    [UInt16]$IMAGE_ROM_OPTIONAL_HDR_MAGIC = 0x107
+    [Uint16]$IMAGE_NUMBEROF_DIRECTORY_ENTRIES = 16
+    [Uint16]$IMAGE_SIZEOF_SHORT_NAME = 8
+    [Uint16]$IMAGE_SIZEOF_SECTION_HEADER = 40
  
     Function Convert-EnumToString([Enum]$enum) {
         $type = [Type]$enum

@@ -135,6 +135,7 @@ function Update-Sysinternals {
                     catch {
                         # A failed restart must not skip the remaining restarts or the exit code.
                         Write-Warning "Failed to restart $($Process.Name): $($_.Exception.Message)"
+                        $Failed = $true
                     }
                 }
             }

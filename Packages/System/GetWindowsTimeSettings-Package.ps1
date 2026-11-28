@@ -64,8 +64,8 @@ function ConvertToFriendlyTime {
     return $OutputString
 }
 
-# Read the configured time server. This script only reads these values; it does not set or configure them.
-$NtpServerValue = (Get-ItemProperty -Path HKLM:\SYSTEM\CurrentControlSet\Services\W32Time\Parameters -Name NtpServer).NtpServer
+# Read the configured time server. A missing value yields an empty column, not an error.
+$NtpServerValue = (Get-ItemProperty -Path HKLM:\SYSTEM\CurrentControlSet\Services\W32Time\Parameters -Name NtpServer -ErrorAction SilentlyContinue).NtpServer
 
 # Read the configured poll interval (seconds) and convert it to a friendly string. A
 # missing value yields an empty column rather than "0 seconds" or a Get-ItemProperty error.

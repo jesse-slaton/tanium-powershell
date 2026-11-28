@@ -73,7 +73,8 @@ if (-not $map) {
 
 # For extra effect we could get the Windows 10 OS version and build release id:
 try {
-    `$WinRelease, `$WinVer = Get-ItemPropertyValue "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion" ReleaseId, CurrentMajorVersionNumber, CurrentMinorVersionNumber, CurrentBuildNumber, UBR
+    `$WinRelease = (Get-ItemPropertyValue "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion" ReleaseId)
+    `$WinVer = (Get-ItemPropertyValue "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion" CurrentMajorVersionNumber, CurrentMinorVersionNumber, CurrentBuildNumber, UBR)
     `$WindowsVersion = "`$(`$WinVer -join '.') (`$WinRelease)"
 }
 catch {
