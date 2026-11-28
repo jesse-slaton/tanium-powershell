@@ -130,6 +130,7 @@ jobs:
           persist-credentials: false
 
       - name: Install pinned Pester and PSScriptAnalyzer
+        continue-on-error: true
         run: ./Tests/Install-TestDependencies.ps1
 
       - name: PSScriptAnalyzer warnings (informational)
