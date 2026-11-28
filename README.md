@@ -98,11 +98,12 @@ See [DEV_ENVIRONMENT.md](./DEV_ENVIRONMENT.md) for:
    and any `.gitleaksignore` file, so it only silences a local `gitleaks` run. To let a
    value through in CI, an allowlist entry in `.gitleaks.toml` must merge first (the
    scan uses the copy of that file from the pull request's base commit).
-7. Save every `.ps1`, `.psm1` and `.psd1` as UTF-8, with a byte order mark when it holds
-   non-ASCII text, never as UTF-16. Secret scanners cannot read UTF-16, and
-   `Tests/Encoding.Tests.ps1` is the fast local check, and the Gitleaks workflow enforces the
-   UTF-16 part on every commit of a pull request (a UTF-16 file fails the job even if a later
-   commit re-encodes it).
+7. Keep UTF-16 out of the repository. Secret scanners cannot read it, so CI fails any added
+   or changed file, of any type, that starts with a UTF-16 byte order mark. `.ps1`, `.psm1`
+   and `.psd1` files must also be UTF-8 (with a byte order mark when they hold non-ASCII
+   text), never UTF-16 without a byte order mark either. `Tests/Encoding.Tests.ps1` is the
+   fast local check, and the Gitleaks workflow enforces both rules on every commit of a pull
+   request, so re-encoding the file in a later commit does not clear it.
 
 ## Documentation
 

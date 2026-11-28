@@ -189,3 +189,19 @@ Describe 'Get-PowerShellEncodingProblem' {
         Get-PowerShellEncodingProblem -Bytes $bytes | Should -BeLike $Expected
     }
 }
+
+Describe 'Get-Utf16ByteOrderMark' {
+    It 'classifies <Case> as <Expected>' -TestCases @(
+        @{ Case = 'a UTF-16LE BOM'; Expected = 'UTF-16LE'; Make = { [byte[]](0xFF, 0xFE, 0x41, 0x00) } }
+        @{ Case = 'a UTF-16BE BOM'; Expected = 'UTF-16BE'; Make = { [byte[]](0xFE, 0xFF, 0x00, 0x41) } }
+        @{ Case = 'just the two LE BOM bytes'; Expected = 'UTF-16LE'; Make = { [byte[]](0xFF, 0xFE) } }
+        @{ Case = 'a UTF-8 BOM'; Expected = ''; Make = { [byte[]](0xEF, 0xBB, 0xBF, 0x41) } }
+        @{ Case = 'an empty file'; Expected = ''; Make = { [byte[]]@() } }
+        @{ Case = 'a one-byte file starting FF'; Expected = ''; Make = { [byte[]](0xFF) } }
+        @{ Case = 'plain ASCII'; Expected = ''; Make = { [byte[]](0x68, 0x69) } }
+    ) {
+        $bytes = [byte[]]@(& $Make)
+        $result = Get-Utf16ByteOrderMark -Bytes $bytes
+        if ($Expected) { $result | Should -Be $Expected } else { $result | Should -BeNullOrEmpty }
+    }
+}

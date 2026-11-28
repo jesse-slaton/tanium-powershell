@@ -192,4 +192,30 @@ function Get-PowerShellEncodingProblem {
     }
 }
 
-Export-ModuleMember -Function Get-RepoRoot, Resolve-StubTarget, Get-ScriptParseResult, Get-PowerShellEncodingProblem
+function Get-Utf16ByteOrderMark {
+    <#
+    .SYNOPSIS
+        Returns 'UTF-16LE' or 'UTF-16BE' when the bytes start with that byte order mark, otherwise nothing.
+
+    .DESCRIPTION
+        Only the first two bytes matter, so a caller may pass just those (read with a FileStream)
+        instead of a whole file. A UTF-8 BOM (EF BB BF), an empty array and a single byte are not
+        UTF-16.
+
+    .PARAMETER Bytes
+        The file's first bytes (at least two to get a verdict).
+
+    .EXAMPLE
+        Get-Utf16ByteOrderMark -Bytes ([byte[]](0xFF, 0xFE))
+    #>
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory)]
+        [AllowEmptyCollection()]
+        [byte[]]$Bytes
+    )
+    if ($Bytes.Length -ge 2 -and $Bytes[0] -eq 0xFF -and $Bytes[1] -eq 0xFE) { return 'UTF-16LE' }
+    if ($Bytes.Length -ge 2 -and $Bytes[0] -eq 0xFE -and $Bytes[1] -eq 0xFF) { return 'UTF-16BE' }
+}
+
+Export-ModuleMember -Function Get-RepoRoot, Resolve-StubTarget, Get-ScriptParseResult, Get-PowerShellEncodingProblem, Get-Utf16ByteOrderMark

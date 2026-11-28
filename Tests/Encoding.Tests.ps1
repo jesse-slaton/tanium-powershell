@@ -5,9 +5,12 @@
 # PowerShell 5.1 has to read non-ASCII text, which the test enforces) and hold no control character other than tab, LF, FF
 # and CR. That rejects UTF-16 with or without a BOM: ASCII text in UTF-16 has NUL bytes, and other
 # BOM-less UTF-16 is either invalid UTF-8 or holds control bytes (U+0101 is the bytes 01 01).
-# This test is the fast local check. The Gitleaks workflow (.github/workflows/gitleaks.yml) enforces
-# the UTF-16 part of the rule on every commit of a pull request, from the base branch's copy of
-# the workflow, so a change cannot skip it or fix the file in a later commit.
+# Two rules, the same two the Gitleaks workflow (.github/workflows/gitleaks.yml) enforces:
+#   1. No tracked file of ANY type may start with a UTF-16 byte order mark (FF FE or FE FF).
+#   2. Tracked PowerShell files must be UTF-8 as described above.
+# This test is the fast local check. The workflow enforces both on every commit of a pull request,
+# from the base branch's copy of the workflow, so a change cannot skip it or fix the file in a
+# later commit.
 # Issue #34.
 
 BeforeAll {
@@ -29,6 +32,13 @@ BeforeAll {
         throw "git ls-files failed with exit code $LASTEXITCODE in '$($script:repoRoot)'."
     }
     $script:trackedFiles = @(($raw -join '') -split "`0" | Where-Object { $_ })
+
+    # Every tracked file, for the UTF-16 byte order mark check.
+    $rawAll = & git -C $script:repoRoot ls-files -z
+    if ($LASTEXITCODE -ne 0) {
+        throw "git ls-files failed with exit code $LASTEXITCODE in '$($script:repoRoot)'."
+    }
+    $script:allTrackedFiles = @(($rawAll -join '') -split "`0" | Where-Object { $_ })
 }
 
 Describe 'Tracked PowerShell files are UTF-8, not UTF-16' {
@@ -44,6 +54,38 @@ Describe 'Tracked PowerShell files are UTF-8, not UTF-16' {
         }
 
         $message = 'these files must be re-saved as UTF-8 with BOM, keeping their line endings (secret scanners cannot read UTF-16, and Windows PowerShell 5.1 misreads BOM-less non-ASCII UTF-8): ' + (@($offenders) -join '; ')
+        @($offenders) | Should -BeNullOrEmpty -Because $message
+    }
+}
+
+Describe 'No tracked file starts with a UTF-16 byte order mark' {
+    It 'finds tracked files to check' {
+        $script:allTrackedFiles.Count | Should -BeGreaterThan 0 -Because 'git ls-files returned no files, so the byte order mark check checked nothing'
+    }
+
+    It 'has no UTF-16 BOM at the start of any tracked file' {
+        # Two bytes per file through a FileStream: ReadAllBytes over every file is slow on
+        # Windows PowerShell 5.1. A read failure throws and fails the test; nothing is skipped.
+        $offenders = foreach ($relativePath in $script:allTrackedFiles) {
+            $path = Join-Path $script:repoRoot $relativePath
+            $stream = [System.IO.File]::Open($path, [System.IO.FileMode]::Open, [System.IO.FileAccess]::Read, [System.IO.FileShare]::ReadWrite)
+            try {
+                $head = New-Object byte[] 2
+                $read = 0
+                while ($read -lt 2) {
+                    $n = $stream.Read($head, $read, 2 - $read)
+                    if ($n -le 0) { break }
+                    $read += $n
+                }
+            }
+            finally { $stream.Dispose() }
+            $got = New-Object byte[] $read
+            [System.Array]::Copy($head, $got, $read)
+            $kind = Get-Utf16ByteOrderMark -Bytes $got
+            if ($kind) { "$relativePath ($kind byte order mark)" }
+        }
+
+        $message = 'these files must be re-saved as UTF-8 (secret scanners cannot read UTF-16 in any file type): ' + (@($offenders) -join '; ')
         @($offenders) | Should -BeNullOrEmpty -Because $message
     }
 }
