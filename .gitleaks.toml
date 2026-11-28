@@ -2,13 +2,14 @@
 # such as a password in a SQL connection string or a literal passed to -Password, so these rules
 # add them. Issue #34.
 #
-# Trust model: CI (.github/workflows/gitleaks.yml) does not read this file from the change under
-# scan. For a pull request it loads the copy from the PR's base commit, and for a push to main the
-# copy from the commit before the push, so a change cannot weaken the rules that scan it. A rule
-# change takes effect for the changes after it merges. CI also ignores inline gitleaks:allow
-# comments and any .gitleaksignore file. A base with no .gitleaks.toml at all (before the change
-# that first adds this file merges) is scanned with the built-in gitleaks rules only, and CI logs a
-# warning. A push to main whose previous commit is not an ancestor fails instead of being scanned.
+# Trust model: CI (.github/workflows/gitleaks.yml) gates every change with the copy of this file
+# from the PR's base commit (for a push to main, the commit before the push), so a change cannot
+# weaken the rules that scan it. When the change's own copy differs, CI runs a second scan with it.
+# That scan can only add findings, so a rule change and a secret it catches are reported in the
+# same change. gitleaks only parses the file; nothing in it is executed by the shell. CI also
+# ignores inline gitleaks:allow comments and any .gitleaksignore file. A base with no .gitleaks.toml
+# at all gets the built-in gitleaks rules for the gating scan, and CI logs a warning (the second
+# scan then covers the change that adds this file). A push to main whose previous commit is not an ancestor fails instead of being scanned.
 
 [extend]
 useDefault = true

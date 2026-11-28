@@ -125,8 +125,8 @@ jobs:
           fi
           echo "Range ${range}: ${count} commits"
 
-          # Rules come from the base, not from the change under scan, so a change cannot weaken
-          # its own scan (see the trust model in .gitleaks.toml).
+          # Scan 1 (gates every change): rules come from the base, not from the change under scan,
+          # so a change cannot weaken its own scan (see the trust model in .gitleaks.toml).
           config="$RUNNER_TEMP/gitleaks.toml"
           # A base without .gitleaks.toml gets the built-in gitleaks rules, never the scanned
           # change's copy, which that change controls.
@@ -148,7 +148,38 @@ jobs:
           # first-parent: git log -p shows no diff for a merge commit, so without it a secret
           # added in a merge commit would not be scanned.
           log_opts="--diff-merges=first-parent ${range}"
-          echo "Scanning: git log ${log_opts}"
-          gitleaks git --no-banner --redact --exit-code 1 \
-            --config "$config" --ignore-gitleaks-allow --gitleaks-ignore-path "$ignore" \
-            --log-opts="${log_opts}" .
+
+          run_scan() {
+            echo "Scanning: git log ${log_opts} (rules: $1)"
+            gitleaks git --no-banner --redact --exit-code 1 \
+              --config "$2" --ignore-gitleaks-allow --gitleaks-ignore-path "$ignore" \
+              --log-opts="${log_opts}" .
+          }
+
+          status=0
+          run_scan "base .gitleaks.toml at ${config_sha}" "$config" || status=$?
+
+          # Scan 2 (can only add findings): the same range with the scanned commit's own
+          # .gitleaks.toml, when it differs from the base copy. Without it, the change that adds
+          # the file, and any change that adds a rule with a secret that rule catches, would never
+          # be scanned with the new rule. Scan 1 still gates, so a change cannot weaken its own
+          # scan. gitleaks only parses this TOML; the shell never executes anything from it. A
+          # malformed copy makes gitleaks error, which fails the job.
+          if git cat-file -e "${scanned_sha}:.gitleaks.toml" 2>/dev/null; then
+            own_blob=$(git rev-parse "${scanned_sha}:.gitleaks.toml")
+            base_blob=$(git rev-parse --verify --quiet "${config_sha}:.gitleaks.toml" || true)
+            if [ "$own_blob" != "$base_blob" ]; then
+              own_config="$RUNNER_TEMP/gitleaks.own.toml"
+              git show "${scanned_sha}:.gitleaks.toml" > "$own_config"
+              run_scan "change's own .gitleaks.toml at ${scanned_sha}" "$own_config" || status=$?
+            else
+              echo "Rules of ${scanned_sha} match the base; one scan is enough"
+            fi
+          else
+            echo "${scanned_sha} has no .gitleaks.toml; no second scan"
+          fi
+
+          if [ "$status" -ne 0 ]; then
+            echo "::error::gitleaks found leaks or failed (exit ${status}); see the scan output above"
+          fi
+          exit "$status"
