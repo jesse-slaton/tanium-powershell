@@ -45,7 +45,6 @@ function Update-Sysinternals {
     )
 
     $Stopped = @()
-    $Restartable = @()
     $Failed = $false
     try {
 
@@ -61,23 +60,24 @@ function Update-Sysinternals {
         # reports as a "cannot find a process" error.
         $Running = Get-Process -Name ZoomIt, ZoomIt64, Desktops, procexp, procexp64 -ErrorAction SilentlyContinue
 
-        # Capture the restart details before each process exits, then stop it.
+        # Stop each process and record it for restart only AFTER Stop-Process has been
+        # issued, so an early terminating error still leaves the entry for the finally
+        # block to restore.
         foreach ($Process in $Running) {
             if ($PSCmdlet.ShouldProcess($Process.Name, 'Stop process')) {
+                # SilentlyContinue because the process may have exited between listing and stopping it.
+                Stop-Process -Id $Process.Id -Force -Verbose -ErrorAction SilentlyContinue
                 $Stopped += [pscustomobject]@{
                     Name = $Process.Name
                     Path = $Process.Path
                     Id   = $Process.Id
                 }
-                # SilentlyContinue because the process may have exited between listing and stopping it.
-                Stop-Process -Id $Process.Id -Force -Verbose -ErrorAction SilentlyContinue
             }
         }
 
-        # Wait for each stopped process to actually exit before replacing its files. Only a
-        # process confirmed gone is marked for restart: a survivor still holds its executable,
-        # so expanding the zip over it would fail, and restarting it would spawn a second
-        # instance.
+        # Wait for each stopped process to actually exit before replacing its files. A
+        # survivor still holds its executable, so abort before expanding rather than
+        # expand over a locked file.
         $Survivors = @()
         foreach ($Process in $Stopped) {
             # SilentlyContinue because Wait-Process reports an error if the process is already gone.
@@ -86,9 +86,6 @@ function Update-Sysinternals {
             $Remaining = Get-Process -Id $Process.Id -ErrorAction SilentlyContinue
             if ($Remaining -and -not $Remaining.HasExited) {
                 $Survivors += $Process
-            }
-            else {
-                $Restartable += $Process
             }
         }
         if ($Survivors.Count -gt 0) {
@@ -107,12 +104,20 @@ function Update-Sysinternals {
     }
     finally {
 
-        # Restart the applications that were confirmed gone, except *64 binaries and
-        # except any executable outside $BaseDir. Before each elevated restart, verify
-        # the trust boundary: the ACL of $BaseDir and of the executable must not grant
-        # write-class rights to a non-trusted principal (see Test-TrustedRestartPath).
+        # Restore every process we stopped that is confirmed gone, except *64 binaries
+        # and except any executable outside $BaseDir. Reconcile each entry here (a
+        # survivor must not be restarted as a second instance), so a process stopped
+        # before an early terminating error is still restored. Before each elevated
+        # restart, verify the trust boundary: the ACL of $BaseDir and of the executable
+        # must not grant write-class rights to a non-trusted principal (see
+        # Test-TrustedRestartPath).
         $BaseDirTrust = $null
-        foreach ($Process in $Restartable) {
+        foreach ($Process in $Stopped) {
+            $Remaining = Get-Process -Id $Process.Id -ErrorAction SilentlyContinue
+            if ($Remaining -and -not $Remaining.HasExited) {
+                # Still running: do not start a second instance.
+                continue
+            }
             if ($Process.Name -notlike '*64' -and $Process.Path -like "$BaseDir\*") {
                 if ($null -eq $BaseDirTrust) {
                     $BaseDirTrust = Test-TrustedRestartPath -Path $BaseDir

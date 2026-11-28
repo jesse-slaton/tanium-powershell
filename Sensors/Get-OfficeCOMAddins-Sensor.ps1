@@ -71,31 +71,32 @@ foreach ($scope in $searchScopes) {
         # The hive is absent on this machine; there are no add-ins to report for it.
         continue
     }
-    # Enumerate each product's Addins key directly, so a denied Addins read is tracked
-    # separately from unrelated Office keys and cannot be masked by a readable key. A
-    # single denied subkey is skipped, not fatal.
-    $products = @(Get-ChildItem -LiteralPath $scope -ErrorAction SilentlyContinue -ErrorVariable +addinReadErrors)
-    foreach ($product in $products) {
-        $addinsPath = Join-Path -Path $product.PSPath -ChildPath 'Addins'
-        if (Test-Path -LiteralPath $addinsPath) {
-            $addinKeys += @(Get-ChildItem -LiteralPath $addinsPath -Recurse -ErrorAction SilentlyContinue -ErrorVariable +addinReadErrors)
-        }
+    # Recursively find every key named 'Addins' (it may sit below an intermediate
+    # version key such as Office\16.0\Outlook\Addins), then read its children. Read
+    # errors are tracked separately from unrelated Office keys so a failed Addins read
+    # cannot be masked by a readable key, and a single denied subkey is skipped.
+    $addinsDirs = Get-ChildItem -LiteralPath $scope -Recurse -ErrorAction SilentlyContinue -ErrorVariable +addinReadErrors |
+        Where-Object { $_.PSChildName -eq 'Addins' }
+    foreach ($addinsDir in $addinsDirs) {
+        $addinKeys += @(Get-ChildItem -LiteralPath $addinsDir.PSPath -ErrorAction SilentlyContinue -ErrorVariable +addinReadErrors)
     }
 }
 
 $Addins = $addinKeys |
     Where-Object { $_.ValueCount -gt 0 } |
-    ForEach-Object { Get-ItemProperty -Path $_.PSPath } |
-    Select-Object @{n = "Name"; e = { Split-Path $_.PSPath -leaf } },
+    ForEach-Object { Get-ItemProperty -Path $_.PSPath -ErrorAction SilentlyContinue -ErrorVariable +addinReadErrors } |
+    Select-Object @{n = "Hive"; e = { if ($_.PSPath -match '_USER') { 'User' } else { 'Machine' } } },
+        @{n = "Name"; e = { Split-Path $_.PSPath -leaf } },
         @{n = "Product"; e = { (($_.PSPath -split '\\')[0, -3])[1] } },
         FriendlyName,
         Loadbehavior,
         @{n = "Load Behavior Description"; e = { $LoadBehaviorHash.$($_.Loadbehavior) } } |
     Where-Object { $null -ne $_.Loadbehavior } |
-    Sort-Object -Property Product, Name -Unique
+    Sort-Object -Unique -Property Hive, Product, Name |
+    Select-Object Name, Product, FriendlyName, Loadbehavior, 'Load Behavior Description'
 
-if ($addinReadErrors.Count -gt 0 -and $addinKeys.Count -eq 0) {
-    # No add-in key could be read (every present Addins key was denied); report it
+if ($addinReadErrors.Count -gt 0 -and -not $Addins) {
+    # No add-in data could be read (every present Addins read failed); report it
     # rather than silently emitting an empty inventory.
     Write-Output "Error: $($addinReadErrors[0].Exception.Message)"
 }
