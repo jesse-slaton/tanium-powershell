@@ -159,25 +159,33 @@ jobs:
           status=0
           run_scan "base .gitleaks.toml at ${config_sha}" "$config" || status=$?
 
-          # Scan 2 (can only add findings): the same range with the scanned commit's own
-          # .gitleaks.toml, when it differs from the base copy. Without it, the change that adds
-          # the file, and any change that adds a rule with a secret that rule catches, would never
-          # be scanned with the new rule. Scan 1 still gates, so a change cannot weaken its own
-          # scan. gitleaks only parses this TOML; the shell never executes anything from it. A
-          # malformed copy makes gitleaks error, which fails the job.
-          if git cat-file -e "${scanned_sha}:.gitleaks.toml" 2>/dev/null; then
-            own_blob=$(git rev-parse "${scanned_sha}:.gitleaks.toml")
-            base_blob=$(git rev-parse --verify --quiet "${config_sha}:.gitleaks.toml" || true)
-            if [ "$own_blob" != "$base_blob" ]; then
-              own_config="$RUNNER_TEMP/gitleaks.own.toml"
-              git show "${scanned_sha}:.gitleaks.toml" > "$own_config"
-              run_scan "change's own .gitleaks.toml at ${scanned_sha}" "$own_config" || status=$?
-            else
-              echo "Rules of ${scanned_sha} match the base; one scan is enough"
+          # Scan 2 (can only add findings): the same range once more for every OTHER version of
+          # .gitleaks.toml that exists at any commit in the range, not just the tip. A change that
+          # adds a rule and a matching secret in one commit, then restores the base file in a
+          # later commit, is still scanned with the rule. Without these scans, the change that
+          # adds the file would only ever be scanned with built-in rules. Scan 1 still gates, so a
+          # change cannot weaken its own scan. gitleaks only parses these TOML files; the shell
+          # never executes anything from them. A malformed copy makes gitleaks error, which fails
+          # the job.
+          base_blob=$(git rev-parse --verify --quiet "${config_sha}:.gitleaks.toml" || true)
+          versions="$RUNNER_TEMP/config-versions.txt"
+          : > "$versions"
+          for c in $(git rev-list "$range"); do
+            blob=$(git rev-parse --verify --quiet "${c}:.gitleaks.toml" || true)
+            if [ -n "$blob" ] && [ "$blob" != "$base_blob" ]; then
+              echo "$blob $c" >> "$versions"
             fi
-          else
-            echo "${scanned_sha} has no .gitleaks.toml; no second scan"
+          done
+          # One line per distinct blob, keeping the first commit it appears in.
+          sort -u -k1,1 "$versions" > "$versions.uniq"
+          if [ ! -s "$versions.uniq" ]; then
+            echo "No .gitleaks.toml version in ${range} differs from the base; one scan is enough"
           fi
+          while read -r blob c; do
+            own_config="$RUNNER_TEMP/gitleaks.${blob}.toml"
+            git cat-file blob "$blob" > "$own_config"
+            run_scan "change's own .gitleaks.toml, blob ${blob} (first seen at ${c})" "$own_config" || status=$?
+          done < "$versions.uniq"
 
           if [ "$status" -ne 0 ]; then
             echo "::error::gitleaks found leaks or failed (exit ${status}); see the scan output above"
