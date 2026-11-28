@@ -1,0 +1,2 @@
+Throwaway probe for the gitleaks PR scan (#34). This PR is never merged; the value below is fake.
+$cred = ConvertTo-SecureString -String "NotARealSecret-PrProbe-0001" -AsPlainText -Force # gitleaks:allow
