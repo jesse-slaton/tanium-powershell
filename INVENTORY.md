@@ -32,8 +32,8 @@ manifest but have no file in this repository, so the module as committed is inco
 
 | Decision | Files |
 |---|---|
-| keep | 159 |
-| fix | 2 |
+| keep | 157 |
+| fix | 4 |
 | retire | 17 |
 | move | 1 |
 | total | 179 |
@@ -77,7 +77,7 @@ manifest but have no file in this repository, so the module as committed is inco
 | `Admin/Office/Get-TaniumClientPatchDeploymentStatus-Package.ps1` | reads Patch deployment statuses, optionally filtered by id | admin/API script (TaniumClient module function) | no | missing SYNOPSIS, DESCRIPTION, PARAMETER, EXAMPLE, NOTES | none found | keep |
 | `Admin/Office/Get-TaniumClientPatchDirectory-Package.ps1` | returns or caches the Tanium Client Patch directory | admin/API script (TaniumClient module function) | no | missing SYNOPSIS, DESCRIPTION, EXAMPLE, NOTES | none found | keep |
 | `Admin/Office/Get-TaniumClientPatchLatestErrors-Package.ps1` | reads Patch latest errors by type (DeploymentError or ScanError) | admin/API script (TaniumClient module function) | no | missing SYNOPSIS, DESCRIPTION, PARAMETER, EXAMPLE, NOTES | none found | keep |
-| `Admin/Office/Get-TaniumClientPatchListApplicability-Package.ps1` | evaluates a Patch list against scan results (incomplete) | admin/API script (TaniumClient module function) | no | missing SYNOPSIS, DESCRIPTION, EXAMPLE, NOTES | calls undefined Get-TaniumClientPatchList; logic incomplete; else none | keep |
+| `Admin/Office/Get-TaniumClientPatchListApplicability-Package.ps1` | defines an incomplete Patch list applicability evaluator that builds partial filters and never emits a result | admin/API script (TaniumClient module function) | no | missing SYNOPSIS, DESCRIPTION, EXAMPLE, NOTES | calls undefined Get-TaniumClientPatchList; logic incomplete; else none | fix |
 | `Admin/Office/Get-TaniumClientPatchLog-Package.ps1` | tails the Patch patch0.log with optional filter | admin/API script (TaniumClient module function) | no | missing SYNOPSIS, DESCRIPTION, PARAMETER, EXAMPLE, NOTES | Invoke-Expression (R-04); else none | keep |
 | `Admin/Office/Get-TaniumClientPatchManifest-Package.ps1` | reads the Patch required-files manifest | admin/API script (TaniumClient module function) | no | missing SYNOPSIS, DESCRIPTION, EXAMPLE, NOTES | none found | keep |
 | `Admin/Office/Get-TaniumClientPatchProductScanResults-Package.ps1` | imports Patch product scan results from a pipe-delimited text file | admin/API script (TaniumClient module function) | no | missing SYNOPSIS, DESCRIPTION, EXAMPLE, NOTES | none found | keep |
@@ -190,7 +190,7 @@ manifest but have no file in this repository, so the module as committed is inco
 | `Packages/Office/Set-TaniumClientSettingCli-Package.ps1` | sets a Tanium Client setting via the TaniumClient CLI | admin/API script (TaniumClient module function) | no | missing SYNOPSIS, DESCRIPTION, EXAMPLE, NOTES | none found | keep |
 | `Packages/Office/Set-TaniumClientVdiSetting-Package.ps1` | sets the Tanium Client VDI settings | admin/API script (TaniumClient module function) | no | missing SYNOPSIS, DESCRIPTION, EXAMPLE, NOTES | none found | keep |
 | `Packages/Office/Start-TaniumClient-Package.ps1` | starts the Tanium Client service | admin/API script (TaniumClient module function) | no | missing SYNOPSIS, DESCRIPTION, EXAMPLE, NOTES | none found | keep |
-| `Packages/Office/TaniumClient.psd1-Package.ps1` | module manifest for the TaniumClient module (misnamed .ps1) | module (manifest) | no | missing SYNOPSIS, DESCRIPTION, EXAMPLE, NOTES | none found | keep |
+| `Packages/Office/TaniumClient.psd1-Package.ps1` | module manifest for the TaniumClient module (misnamed .ps1) | module (manifest) | no | n/a | manifest ModuleToProcess points at a non-colocated psm1; packaging may colocate it, unconfirmed | fix |
 | `Packages/Office/Test-Office64bit-Package.ps1` | reports whether Outlook is 64-bit by parsing its PE header | platform package | yes | missing SYNOPSIS, DESCRIPTION, EXAMPLE, NOTES | none found | keep |
 | `Packages/Office/Test-TaniumClientDirectoryAccess-Package.ps1` | tests whether the Tanium Client directory is readable | admin/API script (TaniumClient module function) | no | missing SYNOPSIS, DESCRIPTION, EXAMPLE, NOTES | none found | keep |
 | `Packages/Office/Test-TaniumClientPeering-Package.ps1` | tests whether the Tanium Client is peering | admin/API script (TaniumClient module function) | no | missing SYNOPSIS, DESCRIPTION, EXAMPLE, NOTES | calls undefined Get-TaniumClientPeer; else none | keep |

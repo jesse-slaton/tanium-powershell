@@ -7,7 +7,8 @@ included on each title line. Survivors are the rows whose Decision is `keep`, `f
 ## Archive parts (epic #51)
 
 Archived files are the rows whose Decision is `retire`; survivors (`keep`, `fix`, or `move`) are
-covered by the help and test parts, not here.
+covered by the other parts, not here. Each part also removes the retired script's docs page and
+test stub, and records the removal in `ARCHIVED.md`.
 
 ### Archive part 1 of 2
 
@@ -18,22 +19,48 @@ covered by the help and test parts, not here.
 **Scope:**
 
 - `Packages/FileSystem/Copy-DBVisLicFile-Package.ps1`
+- `docs/Copy-DBVisLicFile-Package.md`
+- `Tests/Unit/Copy-DBVisLicFile-Package.Tests.ps1`
 - `Packages/FileSystem/NewSafeDiskCleanUp-Package.ps1`
+- `docs/NewSafeDiskCleanUp-Package.md`
+- `Tests/Unit/NewSafeDiskCleanUp-Package.Tests.ps1`
 - `Packages/General/BulkSNTix-Package.ps1`
+- `docs/BulkSNTix-Package.md`
+- `Tests/Unit/BulkSNTix-Package.Tests.ps1`
 - `Packages/General/Generate-InventoryReports-Package.ps1`
+- `docs/Generate-InventoryReports-Package.md`
+- `Tests/Unit/Generate-InventoryReports-Package.Tests.ps1`
 - `Packages/General/Get-MSExchData-Package.ps1`
+- `docs/Get-MSExchData-Package.md`
+- `Tests/Unit/Get-MSExchData-Package.Tests.ps1`
 - `Packages/General/Implement-Reorganization-Package.ps1`
+- `docs/Implement-Reorganization-Package.md`
+- `Tests/Unit/Implement-Reorganization-Package.Tests.ps1`
 - `Packages/General/Set-Mig_LocationTag-Package.ps1`
+- `docs/Set-Mig_LocationTag-Package.md`
+- `Tests/Unit/Set-Mig_LocationTag-Package.Tests.ps1`
 - `Packages/General/WQL-LastModifiedExample-Package.ps1`
+- `docs/WQL-LastModifiedExample-Package.md`
+- `Tests/Unit/WQL-LastModifiedExample-Package.Tests.ps1`
 - `Packages/Network/Create-ScriptInventory-Package.ps1`
+- `docs/Create-ScriptInventory-Package.md`
+- `Tests/Unit/Create-ScriptInventory-Package.Tests.ps1`
 - `Packages/Security/Get-ClientAuthenticationCerts-Package.ps1`
+- `docs/Get-ClientAuthenticationCerts-Package.md`
+- `Tests/Unit/Get-ClientAuthenticationCerts-Package.Tests.ps1`
 
 **Acceptance criteria:**
 
-- Each script is moved to `Archive/` with its existing path preserved under the archive root,
+- Each script moves to `Archive/` with its existing path preserved under the archive root,
   per the retirement reasons recorded in `INVENTORY.md`.
-- No script in this part is modified in place, and no test, README, or standards file changes.
-- The Pester suite still passes after the move (each stub resolves its script in its new location).
+- Each script's docs page and test stub (listed above) are removed with it.
+- Create `ARCHIVED.md` at the repo root (later parts append to it) with a dated section that names
+  this issue, records the commit SHA this part runs from (the last commit that still contains the
+  files), and a `Path | What it did` table (descriptions from `INVENTORY.md`), noting each file can
+  be restored with `git show <sha>:"<path>"`.
+- No remaining file references a removed script by its old path (grep the repo for each archived path;
+  the only matches may be in `ARCHIVED.md` itself).
+- The Pester suite still passes after the moves and removals.
 
 ### Archive part 2 of 2
 
@@ -44,24 +71,74 @@ covered by the help and test parts, not here.
 **Scope:**
 
 - `Packages/Security/Get-ClientAuthenticationCertsfromJSON-Package.ps1`
+- `docs/Get-ClientAuthenticationCertsfromJSON-Package.md`
+- `Tests/Unit/Get-ClientAuthenticationCertsfromJSON-Package.Tests.ps1`
 - `Packages/Security/Set-ClientAuthenticationCertstoJSON-Package.ps1`
+- `docs/Set-ClientAuthenticationCertstoJSON-Package.md`
+- `Tests/Unit/Set-ClientAuthenticationCertstoJSON-Package.Tests.ps1`
 - `Packages/System/RepairWMI-Package.ps1`
+- `docs/RepairWMI-Package.md`
+- `Tests/Unit/RepairWMI-Package.Tests.ps1`
 - `Packages/System/TaniumSucks-Package.ps1`
+- `docs/TaniumSucks-Package.md`
+- `Tests/Unit/TaniumSucks-Package.Tests.ps1`
 - `Sensors/General/Generate-RenamePlan-Sensor.ps1`
+- `docs/Generate-RenamePlan-Sensor.md`
+- `Tests/Unit/Generate-RenamePlan-Sensor.Tests.ps1`
 - `Sensors/GetOdbcDsnsToJSON.ps1`
 
 **Acceptance criteria:**
 
-- Each script is moved to `Archive/` with its existing path preserved under the archive root,
+- Each script moves to `Archive/` with its existing path preserved under the archive root,
   per the retirement reasons recorded in `INVENTORY.md`.
-- No script in this part is modified in place, and no test, README, or standards file changes.
-- The Pester suite still passes after the move (each stub resolves its script in its new location).
+- Each script's docs page and test stub (listed above) are removed with it.
+- Append to `ARCHIVED.md` a dated section that names this issue, records the commit SHA this part
+  runs from, and a `Path | What it did` table with the same `git show <sha>:"<path>"` restore note.
+- No remaining file references a removed script by its old path (grep the repo for each archived path;
+  the only matches may be in `ARCHIVED.md` itself).
+- The Pester suite still passes after the moves and removals.
 
+
+## Fix parts (inventory)
+
+The four scripts whose Decision is `fix`. Behavior tests for these files belong to #62 after each fix
+lands.
+
+### Fix part 1 of 1
+
+[mode: direct] [model: sonnet] [effort: high]
+
+**Title:** Fix the four scripts flagged in the inventory, part 1 of 1
+
+**Scope:**
+
+- `Admin/Office/Get-TaniumClientPatchListApplicability-Package.ps1`
+- `Packages/Office/TaniumClient.psd1-Package.ps1`
+- `Packages/System/DisableSMBv3Compression.ps1`
+- `Sensors/Get-ComputerInfo.ps1`
+
+**Acceptance criteria:**
+
+- `Packages/System/DisableSMBv3Compression.ps1`: set the SMB server `DisableCompression` value to `1` so
+  it actually disables compression; keep the paired `Packages/System/EnableSMBv3Compression.ps1` at `0`
+  (enables) so the two stay consistent.
+- `Sensors/Get-ComputerInfo.ps1`: replace the undefined `$system` with `$ComputerSystem` so the sensor
+  emits the model string instead of empty output.
+- `Packages/Office/TaniumClient.psd1-Package.ps1`: make the manifest loadable (fix `ModuleToProcess` /
+  `RootModule` and the module path, or document and implement the packaging step that colocates
+  `Modules/TaniumClient.psm1` with the manifest); also add the exported helpers that have no file
+  (`Get-PowerShellType`, `Get-Bitness`, `Test-Command`, `Read-XmlFile`, `Test-XmlFile`, `New-Download`,
+  and the Patch process getters) or trim `FunctionsToExport`.
+- `Admin/Office/Get-TaniumClientPatchListApplicability-Package.ps1`: finish the applicability evaluation
+  so it emits a result, removing the placeholder logic.
+
+Behavior tests for these files belong to #62 after the fix lands.
 
 ## Help parts (epic #3, milestone M5)
 
-Survivors are the rows whose Decision is `keep`, `fix`, or `move`. Each part lists survivors whose
-`Help` cell in `INVENTORY.md` is a missing-section list, in the order they appear there.
+Survivors that stay in this repository (Decision `keep` or `fix`) whose `Help` cell in `INVENTORY.md`
+is a missing-section list. The moved script is handled by the move part and gets its help in the
+destination repository.
 
 ### Help part 1 of 16
 
@@ -320,10 +397,10 @@ Survivors are the rows whose Decision is `keep`, `fix`, or `move`. Each part lis
 - `Modules/TaniumDeployPackage/Public/New-TaniumDeployMetadata.ps1`
 - `Packages/FileSystem/Get-PrimaryorLoggedInUserProfilePath-Package.ps1`
 - `Packages/FileSystem/Get-TaniumClientFileModificationTime-Package.ps1`
-- `Packages/General/CreateChromeBackupScheduledTask-Package.ps1`
 - `Packages/General/New-TaniumClientEndUserNotification-Package.ps1`
 - `Packages/General/Read-TaniumClientCxMailbox-Package.ps1`
 - `Packages/Office/Disable-TaniumClientActionLock-Package.ps1`
+- `Packages/Office/Disable-TaniumClientTpythonDebug-Package.ps1`
 
 **Acceptance criteria:**
 
@@ -341,7 +418,6 @@ Survivors are the rows whose Decision is `keep`, `fix`, or `move`. Each part lis
 
 **Scope:**
 
-- `Packages/Office/Disable-TaniumClientTpythonDebug-Package.ps1`
 - `Packages/Office/Enable-TaniumClientActionLock-Package.ps1`
 - `Packages/Office/Enable-TaniumClientTpythonDebug-Package.ps1`
 - `Packages/Office/Get-TaniumClient-Package.ps1`
@@ -351,6 +427,7 @@ Survivors are the rows whose Decision is `keep`, `fix`, or `move`. Each part lis
 - `Packages/Office/Get-TaniumClientCustomTag-Package.ps1`
 - `Packages/Office/Get-TaniumClientCxConfigurationManifestRevision-Package.ps1`
 - `Packages/Office/Get-TaniumClientDbTable-Package.ps1`
+- `Packages/Office/Get-TaniumClientDirectory-Package.ps1`
 
 **Acceptance criteria:**
 
@@ -368,7 +445,6 @@ Survivors are the rows whose Decision is `keep`, `fix`, or `move`. Each part lis
 
 **Scope:**
 
-- `Packages/Office/Get-TaniumClientDirectory-Package.ps1`
 - `Packages/Office/Get-TaniumClientEndpointConfigurationTool-Package.ps1`
 - `Packages/Office/Get-TaniumClientHardening-Package.ps1`
 - `Packages/Office/Get-TaniumClientListenPort-Package.ps1`
@@ -378,6 +454,7 @@ Survivors are the rows whose Decision is `keep`, `fix`, or `move`. Each part lis
 - `Packages/Office/Get-TaniumClientSettingCli-Package.ps1`
 - `Packages/Office/Get-TaniumClientSize-Package.ps1`
 - `Packages/Office/Get-TaniumClientSoapPort-Package.ps1`
+- `Packages/Office/Get-TaniumClientTpython-Package.ps1`
 
 **Acceptance criteria:**
 
@@ -395,7 +472,6 @@ Survivors are the rows whose Decision is `keep`, `fix`, or `move`. Each part lis
 
 **Scope:**
 
-- `Packages/Office/Get-TaniumClientTpython-Package.ps1`
 - `Packages/Office/Get-TaniumClientTpythonDebug-Package.ps1`
 - `Packages/Office/Get-TaniumClientVdiSetting-Package.ps1`
 - `Packages/Office/Get-TaniumClientVersion-Package.ps1`
@@ -405,6 +481,7 @@ Survivors are the rows whose Decision is `keep`, `fix`, or `move`. Each part lis
 - `Packages/Office/Remove-TaniumClientVdiSetting-Package.ps1`
 - `Packages/Office/Restart-TaniumClient-Package.ps1`
 - `Packages/Office/Restart-TaniumClientCx-Package.ps1`
+- `Packages/Office/Set-TaniumClientSetting-Package.ps1`
 
 **Acceptance criteria:**
 
@@ -422,16 +499,16 @@ Survivors are the rows whose Decision is `keep`, `fix`, or `move`. Each part lis
 
 **Scope:**
 
-- `Packages/Office/Set-TaniumClientSetting-Package.ps1`
 - `Packages/Office/Set-TaniumClientSettingCli-Package.ps1`
 - `Packages/Office/Set-TaniumClientVdiSetting-Package.ps1`
 - `Packages/Office/Start-TaniumClient-Package.ps1`
-- `Packages/Office/TaniumClient.psd1-Package.ps1`
 - `Packages/Office/Test-Office64bit-Package.ps1`
 - `Packages/Office/Test-TaniumClientDirectoryAccess-Package.ps1`
 - `Packages/Office/Test-TaniumClientPeering-Package.ps1`
 - `Packages/Office/Write-TaniumClientCxMailbox-Package.ps1`
 - `Packages/Registry/Get-TaniumClientRegistryPath-Package.ps1`
+- `Packages/Registry/Get-TaniumClientUninstallRegistry-Package.ps1`
+- `Packages/System/DisableSMBv3Compression.ps1`
 
 **Acceptance criteria:**
 
@@ -449,8 +526,6 @@ Survivors are the rows whose Decision is `keep`, `fix`, or `move`. Each part lis
 
 **Scope:**
 
-- `Packages/Registry/Get-TaniumClientUninstallRegistry-Package.ps1`
-- `Packages/System/DisableSMBv3Compression.ps1`
 - `Packages/System/EnableSMBv3Compression.ps1`
 - `Packages/System/Get-TaniumClientProcessLoadedModules-Package.ps1`
 - `Packages/System/GetWindows10OSSKU-Package.ps1`
@@ -459,6 +534,8 @@ Survivors are the rows whose Decision is `keep`, `fix`, or `move`. Each part lis
 - `Sensors/Get-ComputerInfo.ps1`
 - `Sensors/Get-PrimaryUserManager.ps1`
 - `Sensors/Get-RateLimitStatus.ps1`
+- `Sensors/GetLastLoggedInUserDetails.ps1`
+- `Sensors/GetOSBrandName.ps1`
 
 **Acceptance criteria:**
 
@@ -476,8 +553,6 @@ Survivors are the rows whose Decision is `keep`, `fix`, or `move`. Each part lis
 
 **Scope:**
 
-- `Sensors/GetLastLoggedInUserDetails.ps1`
-- `Sensors/GetOSBrandName.ps1`
 - `Sensors/GetOSSetupDate.ps1`
 - `Sensors/GetPrimaryUserLocation.ps1`
 - `Sensors/GetSystemDriveBusandMediaType.ps1`
@@ -495,8 +570,9 @@ Survivors are the rows whose Decision is `keep`, `fix`, or `move`. Each part lis
 
 ## Test parts (epic #62, milestone M7)
 
-Survivors are the rows whose Decision is `keep`, `fix`, or `move`. Every survivor is listed here:
-most have only a parse-only test stub today, and a survivor with no test file gets a new one.
+Survivors that stay in this repository (Decision `keep` or `fix`). Every one is listed here because it
+has only a parse-only test stub today, not a behavior test. The moved script is handled by the move part
+and gets its tests in the destination repository.
 
 ### Test part 1 of 17
 
@@ -519,9 +595,8 @@ most have only a parse-only test stub today, and a survivor with no test file ge
 
 **Acceptance criteria:**
 
-- Each script gets behavior tests, replacing its parse-only stub where one exists (or as a new test
-  file where none does), covering its real success path and at least one failure or edge case,
-  without changing the machine the tests run on.
+- Each script gets behavior tests (not just the parse-only stub), covering its real success path and
+  at least one failure or edge case, without changing the machine the tests run on.
 - Tests follow the `Tests/Unit` and `Tests/TestHelpers.psm1` conventions.
 - The full Pester suite passes, including the new tests.
 
@@ -546,9 +621,8 @@ most have only a parse-only test stub today, and a survivor with no test file ge
 
 **Acceptance criteria:**
 
-- Each script gets behavior tests, replacing its parse-only stub where one exists (or as a new test
-  file where none does), covering its real success path and at least one failure or edge case,
-  without changing the machine the tests run on.
+- Each script gets behavior tests (not just the parse-only stub), covering its real success path and
+  at least one failure or edge case, without changing the machine the tests run on.
 - Tests follow the `Tests/Unit` and `Tests/TestHelpers.psm1` conventions.
 - The full Pester suite passes, including the new tests.
 
@@ -573,9 +647,8 @@ most have only a parse-only test stub today, and a survivor with no test file ge
 
 **Acceptance criteria:**
 
-- Each script gets behavior tests, replacing its parse-only stub where one exists (or as a new test
-  file where none does), covering its real success path and at least one failure or edge case,
-  without changing the machine the tests run on.
+- Each script gets behavior tests (not just the parse-only stub), covering its real success path and
+  at least one failure or edge case, without changing the machine the tests run on.
 - Tests follow the `Tests/Unit` and `Tests/TestHelpers.psm1` conventions.
 - The full Pester suite passes, including the new tests.
 
@@ -600,9 +673,8 @@ most have only a parse-only test stub today, and a survivor with no test file ge
 
 **Acceptance criteria:**
 
-- Each script gets behavior tests, replacing its parse-only stub where one exists (or as a new test
-  file where none does), covering its real success path and at least one failure or edge case,
-  without changing the machine the tests run on.
+- Each script gets behavior tests (not just the parse-only stub), covering its real success path and
+  at least one failure or edge case, without changing the machine the tests run on.
 - Tests follow the `Tests/Unit` and `Tests/TestHelpers.psm1` conventions.
 - The full Pester suite passes, including the new tests.
 
@@ -627,9 +699,8 @@ most have only a parse-only test stub today, and a survivor with no test file ge
 
 **Acceptance criteria:**
 
-- Each script gets behavior tests, replacing its parse-only stub where one exists (or as a new test
-  file where none does), covering its real success path and at least one failure or edge case,
-  without changing the machine the tests run on.
+- Each script gets behavior tests (not just the parse-only stub), covering its real success path and
+  at least one failure or edge case, without changing the machine the tests run on.
 - Tests follow the `Tests/Unit` and `Tests/TestHelpers.psm1` conventions.
 - The full Pester suite passes, including the new tests.
 
@@ -654,9 +725,8 @@ most have only a parse-only test stub today, and a survivor with no test file ge
 
 **Acceptance criteria:**
 
-- Each script gets behavior tests, replacing its parse-only stub where one exists (or as a new test
-  file where none does), covering its real success path and at least one failure or edge case,
-  without changing the machine the tests run on.
+- Each script gets behavior tests (not just the parse-only stub), covering its real success path and
+  at least one failure or edge case, without changing the machine the tests run on.
 - Tests follow the `Tests/Unit` and `Tests/TestHelpers.psm1` conventions.
 - The full Pester suite passes, including the new tests.
 
@@ -681,9 +751,8 @@ most have only a parse-only test stub today, and a survivor with no test file ge
 
 **Acceptance criteria:**
 
-- Each script gets behavior tests, replacing its parse-only stub where one exists (or as a new test
-  file where none does), covering its real success path and at least one failure or edge case,
-  without changing the machine the tests run on.
+- Each script gets behavior tests (not just the parse-only stub), covering its real success path and
+  at least one failure or edge case, without changing the machine the tests run on.
 - Tests follow the `Tests/Unit` and `Tests/TestHelpers.psm1` conventions.
 - The full Pester suite passes, including the new tests.
 
@@ -708,9 +777,8 @@ most have only a parse-only test stub today, and a survivor with no test file ge
 
 **Acceptance criteria:**
 
-- Each script gets behavior tests, replacing its parse-only stub where one exists (or as a new test
-  file where none does), covering its real success path and at least one failure or edge case,
-  without changing the machine the tests run on.
+- Each script gets behavior tests (not just the parse-only stub), covering its real success path and
+  at least one failure or edge case, without changing the machine the tests run on.
 - Tests follow the `Tests/Unit` and `Tests/TestHelpers.psm1` conventions.
 - The full Pester suite passes, including the new tests.
 
@@ -735,9 +803,8 @@ most have only a parse-only test stub today, and a survivor with no test file ge
 
 **Acceptance criteria:**
 
-- Each script gets behavior tests, replacing its parse-only stub where one exists (or as a new test
-  file where none does), covering its real success path and at least one failure or edge case,
-  without changing the machine the tests run on.
+- Each script gets behavior tests (not just the parse-only stub), covering its real success path and
+  at least one failure or edge case, without changing the machine the tests run on.
 - Tests follow the `Tests/Unit` and `Tests/TestHelpers.psm1` conventions.
 - The full Pester suite passes, including the new tests.
 
@@ -758,13 +825,12 @@ most have only a parse-only test stub today, and a survivor with no test file ge
 - `Modules/TaniumDeployPackage/TaniumDeployPackage.psm1`
 - `Packages/FileSystem/Get-PrimaryorLoggedInUserProfilePath-Package.ps1`
 - `Packages/FileSystem/Get-TaniumClientFileModificationTime-Package.ps1`
-- `Packages/General/CreateChromeBackupScheduledTask-Package.ps1`
+- `Packages/General/New-TaniumClientEndUserNotification-Package.ps1`
 
 **Acceptance criteria:**
 
-- Each script gets behavior tests, replacing its parse-only stub where one exists (or as a new test
-  file where none does), covering its real success path and at least one failure or edge case,
-  without changing the machine the tests run on.
+- Each script gets behavior tests (not just the parse-only stub), covering its real success path and
+  at least one failure or edge case, without changing the machine the tests run on.
 - Tests follow the `Tests/Unit` and `Tests/TestHelpers.psm1` conventions.
 - The full Pester suite passes, including the new tests.
 
@@ -776,7 +842,6 @@ most have only a parse-only test stub today, and a survivor with no test file ge
 
 **Scope:**
 
-- `Packages/General/New-TaniumClientEndUserNotification-Package.ps1`
 - `Packages/General/Read-TaniumClientCxMailbox-Package.ps1`
 - `Packages/Maintenance/Remove-ExpiredRateLimits-Package.ps1`
 - `Packages/Office/Disable-TaniumClientActionLock-Package.ps1`
@@ -786,12 +851,12 @@ most have only a parse-only test stub today, and a survivor with no test file ge
 - `Packages/Office/Get-TaniumClient-Package.ps1`
 - `Packages/Office/Get-TaniumClientActionHistoryStatistics-Package.ps1`
 - `Packages/Office/Get-TaniumClientActionLock-Package.ps1`
+- `Packages/Office/Get-TaniumClientApiToken-Package.ps1`
 
 **Acceptance criteria:**
 
-- Each script gets behavior tests, replacing its parse-only stub where one exists (or as a new test
-  file where none does), covering its real success path and at least one failure or edge case,
-  without changing the machine the tests run on.
+- Each script gets behavior tests (not just the parse-only stub), covering its real success path and
+  at least one failure or edge case, without changing the machine the tests run on.
 - Tests follow the `Tests/Unit` and `Tests/TestHelpers.psm1` conventions.
 - The full Pester suite passes, including the new tests.
 
@@ -803,7 +868,6 @@ most have only a parse-only test stub today, and a survivor with no test file ge
 
 **Scope:**
 
-- `Packages/Office/Get-TaniumClientApiToken-Package.ps1`
 - `Packages/Office/Get-TaniumClientCustomTag-Package.ps1`
 - `Packages/Office/Get-TaniumClientCxConfigurationManifestRevision-Package.ps1`
 - `Packages/Office/Get-TaniumClientDbTable-Package.ps1`
@@ -813,12 +877,12 @@ most have only a parse-only test stub today, and a survivor with no test file ge
 - `Packages/Office/Get-TaniumClientListenPort-Package.ps1`
 - `Packages/Office/Get-TaniumClientLog-Package.ps1`
 - `Packages/Office/Get-TaniumClientSensorHistoryStatistics-Package.ps1`
+- `Packages/Office/Get-TaniumClientSetting-Package.ps1`
 
 **Acceptance criteria:**
 
-- Each script gets behavior tests, replacing its parse-only stub where one exists (or as a new test
-  file where none does), covering its real success path and at least one failure or edge case,
-  without changing the machine the tests run on.
+- Each script gets behavior tests (not just the parse-only stub), covering its real success path and
+  at least one failure or edge case, without changing the machine the tests run on.
 - Tests follow the `Tests/Unit` and `Tests/TestHelpers.psm1` conventions.
 - The full Pester suite passes, including the new tests.
 
@@ -830,7 +894,6 @@ most have only a parse-only test stub today, and a survivor with no test file ge
 
 **Scope:**
 
-- `Packages/Office/Get-TaniumClientSetting-Package.ps1`
 - `Packages/Office/Get-TaniumClientSettingCli-Package.ps1`
 - `Packages/Office/Get-TaniumClientSize-Package.ps1`
 - `Packages/Office/Get-TaniumClientSoapPort-Package.ps1`
@@ -840,12 +903,12 @@ most have only a parse-only test stub today, and a survivor with no test file ge
 - `Packages/Office/Get-TaniumClientVersion-Package.ps1`
 - `Packages/Office/New-TaniumClientCustomTag-Package.ps1`
 - `Packages/Office/Remove-TaniumClientCustomTag-Package.ps1`
+- `Packages/Office/Remove-TaniumClientSetting-Package.ps1`
 
 **Acceptance criteria:**
 
-- Each script gets behavior tests, replacing its parse-only stub where one exists (or as a new test
-  file where none does), covering its real success path and at least one failure or edge case,
-  without changing the machine the tests run on.
+- Each script gets behavior tests (not just the parse-only stub), covering its real success path and
+  at least one failure or edge case, without changing the machine the tests run on.
 - Tests follow the `Tests/Unit` and `Tests/TestHelpers.psm1` conventions.
 - The full Pester suite passes, including the new tests.
 
@@ -857,7 +920,6 @@ most have only a parse-only test stub today, and a survivor with no test file ge
 
 **Scope:**
 
-- `Packages/Office/Remove-TaniumClientSetting-Package.ps1`
 - `Packages/Office/Remove-TaniumClientVdiSetting-Package.ps1`
 - `Packages/Office/Restart-TaniumClient-Package.ps1`
 - `Packages/Office/Restart-TaniumClientCx-Package.ps1`
@@ -867,12 +929,12 @@ most have only a parse-only test stub today, and a survivor with no test file ge
 - `Packages/Office/Start-TaniumClient-Package.ps1`
 - `Packages/Office/TaniumClient.psd1-Package.ps1`
 - `Packages/Office/Test-Office64bit-Package.ps1`
+- `Packages/Office/Test-TaniumClientDirectoryAccess-Package.ps1`
 
 **Acceptance criteria:**
 
-- Each script gets behavior tests, replacing its parse-only stub where one exists (or as a new test
-  file where none does), covering its real success path and at least one failure or edge case,
-  without changing the machine the tests run on.
+- Each script gets behavior tests (not just the parse-only stub), covering its real success path and
+  at least one failure or edge case, without changing the machine the tests run on.
 - Tests follow the `Tests/Unit` and `Tests/TestHelpers.psm1` conventions.
 - The full Pester suite passes, including the new tests.
 
@@ -884,7 +946,6 @@ most have only a parse-only test stub today, and a survivor with no test file ge
 
 **Scope:**
 
-- `Packages/Office/Test-TaniumClientDirectoryAccess-Package.ps1`
 - `Packages/Office/Test-TaniumClientPeering-Package.ps1`
 - `Packages/Office/Write-TaniumClientCxMailbox-Package.ps1`
 - `Packages/Registry/Get-TaniumClientRegistryPath-Package.ps1`
@@ -894,12 +955,12 @@ most have only a parse-only test stub today, and a survivor with no test file ge
 - `Packages/System/Get-TaniumClientProcessLoadedModules-Package.ps1`
 - `Packages/System/GetWindows10OSSKU-Package.ps1`
 - `Packages/System/parseCBSLOG-Package.ps1`
+- `Packages/Templates/RateLimiting-Helpers.ps1`
 
 **Acceptance criteria:**
 
-- Each script gets behavior tests, replacing its parse-only stub where one exists (or as a new test
-  file where none does), covering its real success path and at least one failure or edge case,
-  without changing the machine the tests run on.
+- Each script gets behavior tests (not just the parse-only stub), covering its real success path and
+  at least one failure or edge case, without changing the machine the tests run on.
 - Tests follow the `Tests/Unit` and `Tests/TestHelpers.psm1` conventions.
 - The full Pester suite passes, including the new tests.
 
@@ -911,7 +972,6 @@ most have only a parse-only test stub today, and a survivor with no test file ge
 
 **Scope:**
 
-- `Packages/Templates/RateLimiting-Helpers.ps1`
 - `Sensors/Get-ComputerInfo.ps1`
 - `Sensors/Get-PrimaryUserManager.ps1`
 - `Sensors/Get-RateLimitStatus.ps1`
@@ -921,12 +981,12 @@ most have only a parse-only test stub today, and a survivor with no test file ge
 - `Sensors/GetPrimaryUserLocation.ps1`
 - `Sensors/GetSystemDriveBusandMediaType.ps1`
 - `Sensors/Get_SecureBootStatus.ps1`
+- `Sensors/HasWirelessAdapter.ps1`
 
 **Acceptance criteria:**
 
-- Each script gets behavior tests, replacing its parse-only stub where one exists (or as a new test
-  file where none does), covering its real success path and at least one failure or edge case,
-  without changing the machine the tests run on.
+- Each script gets behavior tests (not just the parse-only stub), covering its real success path and
+  at least one failure or edge case, without changing the machine the tests run on.
 - Tests follow the `Tests/Unit` and `Tests/TestHelpers.psm1` conventions.
 - The full Pester suite passes, including the new tests.
 
@@ -938,14 +998,12 @@ most have only a parse-only test stub today, and a survivor with no test file ge
 
 **Scope:**
 
-- `Sensors/HasWirelessAdapter.ps1`
 - `Sensors/System/MIGPendingRebootforTanium-Sensor.ps1`
 
 **Acceptance criteria:**
 
-- Each script gets behavior tests, replacing its parse-only stub where one exists (or as a new test
-  file where none does), covering its real success path and at least one failure or edge case,
-  without changing the machine the tests run on.
+- Each script gets behavior tests (not just the parse-only stub), covering its real success path and
+  at least one failure or edge case, without changing the machine the tests run on.
 - Tests follow the `Tests/Unit` and `Tests/TestHelpers.psm1` conventions.
 - The full Pester suite passes, including the new tests.
 
@@ -961,13 +1019,12 @@ most have only a parse-only test stub today, and a survivor with no test file ge
 **Scope:**
 
 - `Packages/General/CreateChromeBackupScheduledTask-Package.ps1`
-- `Tests/Unit/CreateChromeBackupScheduledTask-Package.Tests.ps1` (removed with the script, so no stub targets a missing file)
 
 **Acceptance criteria:**
 
 - Each script moves to the matching `Scripts/` area of powershell-utilities, with its move recorded
   there in `MIGRATION.md` and its path here removed.
-- Its paired test is removed here with it, so the repository hygiene check that every stub targets an
-  existing script still passes.
 - No Tanium-specific dependency is introduced; any hard-coded path is parameterized as part of the move.
+- The destination repository (powershell-utilities) supplies the moved script's comment-based help and
+  behavior tests under its own standards; no help or test work for it is tracked in this repository.
 - Both repositories' test suites still pass.
