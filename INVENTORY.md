@@ -32,11 +32,11 @@ manifest but have no file in this repository, so the module as committed is inco
 
 | Decision | Files |
 |---|---|
-| keep | 157 |
+| keep | 165 |
 | fix | 4 |
 | retire | 17 |
 | move | 1 |
-| total | 179 |
+| total | 187 |
 
 ## Inventory
 
@@ -155,6 +155,7 @@ manifest but have no file in this repository, so the module as committed is inco
 | `Packages/General/WQL-LastModifiedExample-Package.ps1` | one-line WQL example reading a file's LastModified | platform package | yes | missing SYNOPSIS, DESCRIPTION, EXAMPLE, NOTES | 5.1-only Get-WmiObject; example stub | retire |
 | `Packages/Maintenance/Remove-ExpiredRateLimits-Package.ps1` | removes expired rate-limit registry entries under the Tanium Client Sensor Data | platform package | yes | Complete | none found | keep |
 | `Packages/Network/Create-ScriptInventory-Package.ps1` | generates INVENTORY.csv by scanning PowerShell files for metadata and recommendations | platform package | yes | missing NOTES | #Requires 5.1; one-time tooling; none else | retire |
+| `Packages/Network/ncsidiag-Package.ps1` | checks NCSI web and DNS probes and prints a one-line summary | platform package | yes | Complete | PSSA false positive (New-Object -Type abbrev); else none found | keep |
 | `Packages/Office/Disable-TaniumClientActionLock-Package.ps1` | clears the Tanium Client action lock flag | admin/API script (TaniumClient module function) | no | missing SYNOPSIS, DESCRIPTION, EXAMPLE, NOTES | none found | keep |
 | `Packages/Office/Disable-TaniumClientTpythonDebug-Package.ps1` | clears the TPython debug flag | admin/API script (TaniumClient module function) | no | missing SYNOPSIS, DESCRIPTION, EXAMPLE, NOTES | none found | keep |
 | `Packages/Office/Enable-TaniumClientActionLock-Package.ps1` | sets the Tanium Client action lock flag | admin/API script (TaniumClient module function) | no | missing SYNOPSIS, DESCRIPTION, EXAMPLE, NOTES | none found | keep |
@@ -203,15 +204,21 @@ manifest but have no file in this repository, so the module as committed is inco
 | `Packages/System/DisableSMBv3Compression.ps1` | sets the SMB server DisableCompression registry value | platform package | yes | missing SYNOPSIS, DESCRIPTION, EXAMPLE, NOTES | sets DisableCompression=0 which ENABLES compression; should be 1; none else | fix |
 | `Packages/System/EnableSMBv3Compression.ps1` | sets the SMB server DisableCompression registry value to enable compression | platform package | yes | missing SYNOPSIS, DESCRIPTION, EXAMPLE, NOTES | none found | keep |
 | `Packages/System/Get-TaniumClientProcessLoadedModules-Package.ps1` | lists loaded modules for Tanium Client processes | admin/API script (TaniumClient module function) | no | missing SYNOPSIS, DESCRIPTION, EXAMPLE, NOTES | 32-bit powershell.exe relaunch (SysWOW64); calls undefined Test-Process/Get-ProcessBitness | keep |
+| `Packages/System/GetNETFrameworkVersionScript-Package.ps1` | generates a script that lists installed .NET Framework versions | platform package | yes | Complete | source URL pins the master branch (may be stale); else none found | keep |
 | `Packages/System/GetWindows10OSSKU-Package.ps1` | maps the OS SKU number to a friendly name via CIM | platform package | yes | missing SYNOPSIS, DESCRIPTION, EXAMPLE, NOTES | none found | keep |
+| `Packages/System/GetWindowsTimeSettings-Package.ps1` | reports the NTP server, poll interval and w32time status as one line | platform package | yes | Complete | none found | keep |
 | `Packages/System/RepairWMI-Package.ps1` | backs up, stops, repairs and restarts the WMI repository | platform package | yes | missing SYNOPSIS, DESCRIPTION, EXAMPLE, NOTES | 5.1-only Get-WmiObject/[WMIClass]; org-specific Contoso key; C:\DesktopSupportTools | retire |
 | `Packages/System/TaniumSucks-Package.ps1` | empty stub that writes a placeholder text file | platform package | yes | missing SYNOPSIS, DESCRIPTION, EXAMPLE, NOTES | empty stub (writes testfile.txt); none else | retire |
 | `Packages/System/parseCBSLOG-Package.ps1` | parses CBS.log for SFC repairs and exports them to CSV | platform package | yes | missing SYNOPSIS, DESCRIPTION, EXAMPLE, NOTES | none found | keep |
 | `Packages/Templates/RateLimiting-Helpers.ps1` | copy-paste rate-limiting helper functions for platform packages | platform package | yes | missing SYNOPSIS, DESCRIPTION, PARAMETER, EXAMPLE, NOTES | none found | keep |
 | `Sensors/General/Generate-RenamePlan-Sensor.ps1` | generates RENAME_PLAN.csv renaming proposals from INVENTORY.csv | sensor | yes | missing PARAMETER, EXAMPLE, NOTES | #Requires 5.1; one-time tooling; none else | retire |
 | `Sensors/Get-ComputerInfo.ps1` | reports the computer model (Lenovo-aware) | sensor | yes | missing SYNOPSIS, DESCRIPTION, EXAMPLE, NOTES | 5.1-only Get-WmiObject; references undefined $system (should be $ComputerSystem); Write-Host | fix |
+| `Sensors/Get-OfficeAddIns-Sensor.ps1` | lists Office add-ins from the registry, one pipe-delimited line each | sensor | yes | Complete | none found | keep |
+| `Sensors/Get-OfficeCOMAddins-Sensor.ps1` | lists Office COM add-ins from the Click-to-Run platform hive, one pipe-delimited line each | sensor | yes | Complete | none found | keep |
 | `Sensors/Get-PrimaryUserManager.ps1` | reports the primary user's manager from the Tanium ADQuery inventory | sensor | yes | missing SYNOPSIS, DESCRIPTION, EXAMPLE, NOTES | none found | keep |
 | `Sensors/Get-RateLimitStatus.ps1` | enumerates platform package rate limits with expiration status | sensor | yes | missing SYNOPSIS, DESCRIPTION, EXAMPLE, NOTES | none found | keep |
+| `Packages/System/Get-Sysinternals-Sensor.ps1` | downloads the Sysinternals Suite to C:\Bin, stops ZoomIt, Desktops and Process Explorer processes, and attempts to restart only those it confirmed exited, only when the executable is under C:\Bin and its name does not end in 64 (a restart can still fail) | platform package | yes | Complete | none found | keep |
+| `Sensors/GetBinaryTypeTaniumSensor.ps1` | reports whether each listed file is a 32-bit or 64-bit PE image | sensor | yes | Complete | none found | keep |
 | `Sensors/GetLastLoggedInUserDetails.ps1` | reports the last logged-in user's AD details pipe-delimited | sensor | yes | missing SYNOPSIS, DESCRIPTION, EXAMPLE, NOTES | none found | keep |
 | `Sensors/GetOSBrandName.ps1` | reports the OS release display version from the registry | sensor | yes | missing SYNOPSIS, DESCRIPTION, EXAMPLE, NOTES | none found | keep |
 | `Sensors/GetOSSetupDate.ps1` | reports the OS installation date | sensor | yes | missing SYNOPSIS, DESCRIPTION, EXAMPLE, NOTES | none found | keep |
@@ -221,3 +228,4 @@ manifest but have no file in this repository, so the module as committed is inco
 | `Sensors/Get_SecureBootStatus.ps1` | reports whether Secure Boot is enabled | sensor | yes | missing SYNOPSIS, DESCRIPTION, EXAMPLE, NOTES | none found | keep |
 | `Sensors/HasWirelessAdapter.ps1` | reports whether the machine has a Wi-Fi adapter | sensor | yes | missing SYNOPSIS, DESCRIPTION, EXAMPLE, NOTES | none found | keep |
 | `Sensors/System/MIGPendingRebootforTanium-Sensor.ps1` | reports pending reboot state (the classic Get-PendingReboot function) | sensor | yes | Complete | 5.1-only Get-WmiObject/[WMIClass]; Sysnative relaunch (documented pattern); runs on 5.1 | keep |
+| `Sensors/Test-InternetConnection-Sensor.ps1` | tests for an internet connection using the Windows NCSI probe settings | sensor | yes | Complete | none found | keep |
