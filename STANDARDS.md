@@ -102,8 +102,8 @@ Get-CimInstance -ClassName Win32_Service |
     Select-Object -Property Name, StartMode
 ```
 
-Checked by #44 (`PSUseConsistentIndentation`), with `.editorconfig` setting the same
-width in editors.
+Checked by #44 (`PSUseConsistentIndentation`), which also adds the `.editorconfig`
+that sets the same width in editors.
 
 ### R-03 Output streams
 
@@ -238,11 +238,12 @@ Rule:
 
 - ASCII preferred. If a file needs a non-ASCII character, save it as UTF-8 with BOM.
   Never UTF-16.
-- LF line endings in the repository, set by `.gitattributes` (`*.ps1`, `*.psm1`,
-  `*.psd1` use `text eol=lf`).
+- LF line endings in the repository. The `.gitattributes` that sets `text eol=lf`
+  for `*.ps1`, `*.psm1` and `*.psd1` is added by #44; until then this part is
+  checked by review.
 - Every file ends with a final newline.
 
-Checked by #44 (line endings and final newline, via `.gitattributes`); the BOM and
+Checked by #44 once it adds `.gitattributes` and the line-ending check; the BOM and
 UTF-16 rules are checked by review.
 
 ### R-12 Branching (switch vs if)
