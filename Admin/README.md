@@ -9,7 +9,7 @@ Admin scripts manage the Tanium Client itself, including Tanium Patch and Tanium
 ## Key Characteristics
 
 - **External Execution**: Cannot run within Tanium (managing the client from itself)
-- **Full Comment-Based Help**: Must support Get-Help (unlike Packages/Sensors)
+- **Full Comment-Based Help**: Must support Get-Help (STANDARDS.md R-07 applies to every category)
 - **Administrative Access**: Requires elevated privileges
 - **Client Management**: Tanium Client, Tanium Patch, Tanium Deploy operations
 - **Functions**: Typically contain reusable functions

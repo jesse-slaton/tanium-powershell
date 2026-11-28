@@ -16,38 +16,9 @@ Deploy Packages handle software lifecycle management: installation, updates, and
 
 ## Documentation Standards
 
-Deploy Packages do NOT require comment-based help (Get-Help support). Use simple file headers:
-
-```powershell
-# Script: Deploy-SoftwareName.ps1
-# Purpose: Install/Update/Remove Software Name
-# Author: Jesse Slaton
-# Created: YYYY-MM-DD
-# Modified: YYYY-MM-DD
-#
-# Tanium Deploy Package Specifications:
-#   - Type: Software Deployment
-#   - Operations: Install, Update, Remove
-#   - Logging: Detailed operation logs
-#   - Idempotent: Handles MSI error codes appropriately
-#
-# Prerequisites:
-#   - Required files in package directory
-#   - Tanium Client installed
-#   - Administrative privileges
-#
-# Parameters:
-#   Operation - Install, Update, or Remove
-#   Version - Software version to deploy
-#
-# Exit Codes:
-#   0 - Success
-#   3010 - Success, reboot required
-#   1618 - Another installation in progress (retry)
-#   Other - See MSI error codes or installer documentation
-```
-
-See [DOCUMENTATION_STANDARDS.md](../DOCUMENTATION_STANDARDS.md) for complete guidance.
+Every script uses comment-based help as its header, with the Author, Created and
+Modified lines in `.NOTES` (STANDARDS.md R-07). The deploy-package rules are
+STANDARDS.md R-26 to R-27. See [STANDARDS.md](../STANDARDS.md).
 
 ## MSI-Based Deployments
 
@@ -84,7 +55,7 @@ msiexec.exe /fa "package.msi" ALLUSERS=1 /qn /norestart /l*v "C:\path\to\repair.
 | 1638 | Another version installed | Check Product Code, return 0 if already installed |
 | 1603 | Fatal error | Return 1603, check logs |
 
-See [DOCUMENTATION_STANDARDS.md - MSI Idempotency](../DOCUMENTATION_STANDARDS.md#msi-idempotency-considerations) for complete details.
+See [STANDARDS.md - Deploy exit codes](../STANDARDS.md#r-27-exit-codes) for complete details.
 
 ### Installation State Check
 

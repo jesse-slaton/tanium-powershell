@@ -16,32 +16,9 @@ Platform Packages perform state-changing operations on endpoints such as registr
 
 ## Documentation Standards
 
-Platform Packages do NOT require comment-based help (Get-Help support). Use simple file headers:
-
-```powershell
-# Script: Package-Name.ps1
-# Purpose: Brief description of what this changes
-# Author: Jesse Slaton
-# Created: YYYY-MM-DD
-# Modified: YYYY-MM-DD
-#
-# Tanium Package Specifications:
-#   - Type: Platform Package (state-changing)
-#   - Supports: -WhatIf, -Confirm
-#   - Requires: Administrative privileges
-#   - Idempotent: Safe to run multiple times
-#
-# Prerequisites:
-#   - Run as Administrator
-#   - Specific requirements
-#
-# Changes Made:
-#   - Registry: HKLM:\Path\To\Key
-#   - Services: ServiceName
-#   - Files: C:\Path\To\File
-```
-
-See [DOCUMENTATION_STANDARDS.md](../DOCUMENTATION_STANDARDS.md) for complete guidance.
+Every script uses comment-based help as its header, with the Author, Created and
+Modified lines in `.NOTES` (STANDARDS.md R-07). The platform-package rules are
+STANDARDS.md R-22 to R-25. See [STANDARDS.md](../STANDARDS.md).
 
 ## Directory Structure
 

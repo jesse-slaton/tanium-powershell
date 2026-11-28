@@ -16,27 +16,9 @@ Sensors are read-only scripts that collect information from endpoints and return
 
 ## Documentation Standards
 
-Sensors do NOT require comment-based help (Get-Help support). Use simple file headers:
-
-```powershell
-# Script: SensorName.ps1
-# Purpose: Brief description
-# Author: Jesse Slaton
-# Created: YYYY-MM-DD
-# Modified: YYYY-MM-DD
-#
-# Tanium Sensor Specifications:
-#   - Execution time: < 1000ms
-#   - Output format: Pipe-delimited
-#   - Read-only: No system changes
-#
-# Prerequisites:
-#   - List requirements
-#
-# Expected Output: Value1|Value2|Value3
-```
-
-See [DOCUMENTATION_STANDARDS.md](../DOCUMENTATION_STANDARDS.md) for complete guidance.
+Every script uses comment-based help as its header, with the Author, Created and
+Modified lines in `.NOTES` (STANDARDS.md R-07). The sensor rules are STANDARDS.md
+R-17 to R-21. See [STANDARDS.md](../STANDARDS.md).
 
 ## Current Sensors
 
