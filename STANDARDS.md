@@ -157,8 +157,8 @@ Rule:
 - No empty `catch` blocks.
 - Setting `SilentlyContinue` or `Ignore` by any route needs an explanatory comment
   on the same line or the line directly above.
-- Sensor and package scripts (`*-Sensor.ps1`, `*-Package.ps1`) end with an explicit
-  top-level `exit` code (rules R-21, R-25, R-27).
+- Sensor and Deploy-package scripts end with an explicit top-level `exit` code
+  (rules R-21 and R-27).
 
 Checked by #45 (`PSAvoidUsingEmptyCatchBlock`); the `SilentlyContinue` comment rule
 and the top-level `exit` rule are checked by review.
