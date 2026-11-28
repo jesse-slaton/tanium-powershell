@@ -1,0 +1,219 @@
+# Script inventory
+
+One row per tracked `.ps1`/`.psm1` file outside `Tests/` (179 files), with what it does, its Tanium
+role, whether it runs on endpoints, PowerShell 5.1 / 7.x compatibility notes, and a decision: keep,
+fix, retire, or move to powershell-utilities. Tracking issue: #50.
+
+## Method
+
+1. Every file was run through PSScriptAnalyzer 1.23.0 with the compatibility rules
+   (`PSUseCompatibleSyntax` against 5.1 and 7.0, and `PSUseCompatibleCommands` /
+   `PSUseCompatibleTypes` against the 5.1 framework and 7.0 core profiles), the same method as
+   powershell-utilities `MIGRATION.md`. Profile false positives (parameter abbreviations such as
+   `-Class`, `-Type`, and local functions such as `Write-Log`) are marked as such.
+2. Each file was then read for 5.1-only and 7.x-only constructs the rules miss: the WMI cmdlets and
+   `[wmi]`/`[wmiclass]` accelerators, `Invoke-Expression`, `Send-MailMessage`, hard-coded 32-bit
+   `powershell.exe` relaunches, `Add-Type`, and org-specific or hard-coded paths.
+
+The Tanium Client Deploy/Patch function files under `Admin/Office/`, `Admin/FileSystem/`,
+`Admin/Deploy/`, `Admin/System/`, `Packages/Office/`, `Packages/Registry/`, and a few files under
+`Packages/FileSystem/`, `Packages/System/`, `Packages/General/` and `Admin/Software/` are the pieces of a
+third-party TaniumClient module (`Packages/Office/TaniumClient.psd1-Package.ps1` is its manifest). They
+define one function each and are admin workstation tools, not endpoint packages, so they are listed as
+admin/API scripts. Many of their helper functions (`Get-PowerShellType`, `Get-Bitness`, `Test-Command`,
+`Test-XmlFile`, `Read-XmlFile`, `New-Download`, and several Patch process getters) are exported by the
+manifest but have no file in this repository, so the module as committed is incomplete.
+
+## Summary
+
+| Decision | Files |
+|---|---|
+| keep | 159 |
+| fix | 2 |
+| retire | 17 |
+| move | 1 |
+| total | 179 |
+
+## Inventory
+
+| Path | What it does | Role | Runs on endpoints | PS 5.1 / 7.x notes | Decision |
+|---|---|---|---|---|---|
+| `Admin/Deploy/Add-TaniumClientDeploySelfService-Package.ps1` | defines Add-TaniumClientDeploySelfServiceProfile, writes a Deploy end-user self-service profile JSON and wakes Deploy | admin/API script (TaniumClient module function) | no | none found | keep |
+| `Admin/Deploy/Get-TaniumClientDeployDownloads-Package.ps1` | queries the Deploy downloads table from the local software-management.db via PSSQLite | admin/API script (TaniumClient module function) | no | none found | keep |
+| `Admin/FileSystem/Get-TaniumClientDeployDbFile-Package.ps1` | returns or caches the path to the Tanium Client Deploy SQLite database | admin/API script (TaniumClient module function) | no | none found | keep |
+| `Admin/FileSystem/Get-TaniumClientDeployEussProfile-Package.ps1` | queries Deploy end-user self-service profiles from the local SQLite database | admin/API script (TaniumClient module function) | no | none found | keep |
+| `Admin/FileSystem/Get-TaniumClientPatchCabFileSize-Package.ps1` | reports the size of the Patch wsusscn2.cab from CDN or the local scans folder | admin/API script (TaniumClient module function) | no | none found | keep |
+| `Admin/FileSystem/Remove-TaniumClientPatchSettingsFile-Package.ps1` | deletes the Tanium Client Patch settings-file | admin/API script (TaniumClient module function) | no | none found | keep |
+| `Admin/FileSystem/Set-TaniumClientDeployDbFile-Package.ps1` | sets the global path to the Tanium Client Deploy SQLite database | admin/API script (TaniumClient module function) | no | none found | keep |
+| `Admin/FileSystem/Test-TaniumClientPatchXmlFile-Package.ps1` | validates each Tanium Client Patch XML file and reports IsValidXml | admin/API script (TaniumClient module function) | no | none found | keep |
+| `Admin/FileSystem/Update-TaniumClientPatchCabFile-Package.ps1` | downloads a fresh Patch wsusscn2.cab into the local scans folder | admin/API script (TaniumClient module function) | no | none found | keep |
+| `Admin/Office/Disable-TaniumClientDeploy-Package.ps1` | sets the registry flag that disables the Tanium Client Deploy extension | admin/API script (TaniumClient module function) | no | none found | keep |
+| `Admin/Office/Enable-TaniumClientDeploy-Package.ps1` | sets the registry flag that enables the Tanium Client Deploy extension | admin/API script (TaniumClient module function) | no | none found | keep |
+| `Admin/Office/Get-TaniumClientDeployCatalogVersion-Package.ps1` | returns the Deploy software package catalog version | admin/API script (TaniumClient module function) | no | none found | keep |
+| `Admin/Office/Get-TaniumClientDeployConfiguration-Package.ps1` | queries Deploy configurations from the local SQLite database | admin/API script (TaniumClient module function) | no | none found | keep |
+| `Admin/Office/Get-TaniumClientDeployDbLog-Package.ps1` | reads the Deploy logs table from the local SQLite database | admin/API script (TaniumClient module function) | no | none found | keep |
+| `Admin/Office/Get-TaniumClientDeployDbTable-Package.ps1` | queries an arbitrary table from the Deploy SQLite database | admin/API script (TaniumClient module function) | no | none found | keep |
+| `Admin/Office/Get-TaniumClientDeployDeployment-Package.ps1` | queries Deploy deployments from the local SQLite database | admin/API script (TaniumClient module function) | no | none found | keep |
+| `Admin/Office/Get-TaniumClientDeployDirectory-Package.ps1` | returns or caches the Tanium Client Deploy tools directory | admin/API script (TaniumClient module function) | no | none found | keep |
+| `Admin/Office/Get-TaniumClientDeployEussActivities-Package.ps1` | queries Deploy end-user self-service activity records | admin/API script (TaniumClient module function) | no | none found | keep |
+| `Admin/Office/Get-TaniumClientDeployLog-Package.ps1` | tails the Deploy software-management.log with optional filter | admin/API script (TaniumClient module function) | no | Invoke-Expression (R-04); else none | keep |
+| `Admin/Office/Get-TaniumClientDeployLogLevel-Package.ps1` | reads the Deploy log level from configure.py | admin/API script (TaniumClient module function) | no | none found | keep |
+| `Admin/Office/Get-TaniumClientDeployMaintenanceWindow-Package.ps1` | queries Deploy maintenance windows from the SQLite database | admin/API script (TaniumClient module function) | no | none found | keep |
+| `Admin/Office/Get-TaniumClientDeployScanHistory-Package.ps1` | queries Deploy scan history from the SQLite database | admin/API script (TaniumClient module function) | no | none found | keep |
+| `Admin/Office/Get-TaniumClientDeployScanHistoryStatistics-Package.ps1` | summarizes Deploy scan duration statistics | admin/API script (TaniumClient module function) | no | none found | keep |
+| `Admin/Office/Get-TaniumClientDeployScanHistoryStatisticsByDay-Package.ps1` | groups Deploy scan history counts by day | admin/API script (TaniumClient module function) | no | none found | keep |
+| `Admin/Office/Get-TaniumClientDeployVersion-Package.ps1` | reads the Deploy version from the client Tools/Deploy/version file | admin/API script (TaniumClient module function) | no | none found | keep |
+| `Admin/Office/Get-TaniumClientPatchActiveScanConfiguration-Package.ps1` | finds the active Patch scan configuration by priority | admin/API script (TaniumClient module function) | no | calls undefined Get-TaniumClientPatchScanConfiguration; else none | keep |
+| `Admin/Office/Get-TaniumClientPatchApplicablePatches-Package.ps1` | filters Patch scan results to not-installed patches | admin/API script (TaniumClient module function) | no | none found | keep |
+| `Admin/Office/Get-TaniumClientPatchApplicableProducts-Package.ps1` | filters Patch product scan results to applicable products | admin/API script (TaniumClient module function) | no | none found | keep |
+| `Admin/Office/Get-TaniumClientPatchCabAge-Package.ps1` | reports the age of the Patch wsusscn2.cab file | admin/API script (TaniumClient module function) | no | none found | keep |
+| `Admin/Office/Get-TaniumClientPatchConfiguration-Package.ps1` | reads a named Patch deployment/scan/blocklist/maintenance-window/patchlist XML | admin/API script (TaniumClient module function) | no | none found | keep |
+| `Admin/Office/Get-TaniumClientPatchData-Package.ps1` | reads named Patch data files (statuses, results, errors, manifests) as XML or text | admin/API script (TaniumClient module function) | no | none found | keep |
+| `Admin/Office/Get-TaniumClientPatchDeploymentResult-Package.ps1` | reads Patch deployment results, optionally filtered by id | admin/API script (TaniumClient module function) | no | none found | keep |
+| `Admin/Office/Get-TaniumClientPatchDeploymentStatus-Package.ps1` | reads Patch deployment statuses, optionally filtered by id | admin/API script (TaniumClient module function) | no | none found | keep |
+| `Admin/Office/Get-TaniumClientPatchDirectory-Package.ps1` | returns or caches the Tanium Client Patch directory | admin/API script (TaniumClient module function) | no | none found | keep |
+| `Admin/Office/Get-TaniumClientPatchLatestErrors-Package.ps1` | reads Patch latest errors by type (DeploymentError or ScanError) | admin/API script (TaniumClient module function) | no | none found | keep |
+| `Admin/Office/Get-TaniumClientPatchListApplicability-Package.ps1` | evaluates a Patch list against scan results (incomplete) | admin/API script (TaniumClient module function) | no | calls undefined Get-TaniumClientPatchList; logic incomplete; else none | keep |
+| `Admin/Office/Get-TaniumClientPatchLog-Package.ps1` | tails the Patch patch0.log with optional filter | admin/API script (TaniumClient module function) | no | Invoke-Expression (R-04); else none | keep |
+| `Admin/Office/Get-TaniumClientPatchManifest-Package.ps1` | reads the Patch required-files manifest | admin/API script (TaniumClient module function) | no | none found | keep |
+| `Admin/Office/Get-TaniumClientPatchProductScanResults-Package.ps1` | imports Patch product scan results from a pipe-delimited text file | admin/API script (TaniumClient module function) | no | none found | keep |
+| `Admin/Office/Get-TaniumClientPatchScanAge-Package.ps1` | reports the age of the Patch scan results file | admin/API script (TaniumClient module function) | no | none found | keep |
+| `Admin/Office/Get-TaniumClientPatchScanPriorities-Package.ps1` | reads the Patch scan configuration priorities | admin/API script (TaniumClient module function) | no | none found | keep |
+| `Admin/Office/Get-TaniumClientPatchScanResults-Package.ps1` | parses Patch scan results into objects from patch-scan-results.txt | admin/API script (TaniumClient module function) | no | none found | keep |
+| `Admin/Office/Get-TaniumClientPatchScanStatistics-Package.ps1` | summarizes Patch scan durations from patch logs | admin/API script (TaniumClient module function) | no | none found | keep |
+| `Admin/Office/Get-TaniumClientPatchScanStatus-Package.ps1` | reads Patch scan statuses, optionally filtered by id | admin/API script (TaniumClient module function) | no | none found | keep |
+| `Admin/Office/Get-TaniumClientPatchSetting-Package.ps1` | reads the Patch log-settings file with defaults | admin/API script (TaniumClient module function) | no | none found | keep |
+| `Admin/Office/Get-TaniumClientPatchTswDb-Package.ps1` | maps applicable Patch products to their Tanium Scan database paths | admin/API script (TaniumClient module function) | no | none found | keep |
+| `Admin/Office/Get-TaniumClientPatchTswManifest-Package.ps1` | reads the Patch tsw-manifest XML | admin/API script (TaniumClient module function) | no | none found | keep |
+| `Admin/Office/Get-TaniumClientPatchVersion-Package.ps1` | returns the Patch manifest version | admin/API script (TaniumClient module function) | no | none found | keep |
+| `Admin/Office/New-TaniumClientDeployDeployment-Package.ps1` | writes a Deploy deployment JSON file and (optionally) wakes Deploy | admin/API script (TaniumClient module function) | no | none found | keep |
+| `Admin/Office/Remove-TaniumClientPatchDeployment-Package.ps1` | deletes a Patch deployment configuration XML | admin/API script (TaniumClient module function) | no | none found | keep |
+| `Admin/Office/Remove-TaniumClientPatchDeploymentResult-Package.ps1` | removes a Patch deployment result entry from the XML | admin/API script (TaniumClient module function) | no | none found | keep |
+| `Admin/Office/Remove-TaniumClientPatchDeploymentStatus-Package.ps1` | removes a Patch deployment status entry from the XML | admin/API script (TaniumClient module function) | no | none found | keep |
+| `Admin/Office/Remove-TaniumClientPatchLatestErrors-Package.ps1` | deletes the Patch latest-errors file | admin/API script (TaniumClient module function) | no | none found | keep |
+| `Admin/Office/Remove-TaniumClientPatchScanResults-Package.ps1` | deletes the Patch scan results file | admin/API script (TaniumClient module function) | no | none found | keep |
+| `Admin/Office/Restart-TaniumClientDeployProcess-Package.ps1` | restarts the Deploy process via TPython | admin/API script (TaniumClient module function) | no | none found | keep |
+| `Admin/Office/Search-TaniumClientDeployLog-Package.ps1` | searches the Deploy log for a filter string | admin/API script (TaniumClient module function) | no | none found | keep |
+| `Admin/Office/Search-TaniumClientPatchLog-Package.ps1` | searches the Patch logs for a filter string | admin/API script (TaniumClient module function) | no | none found | keep |
+| `Admin/Office/Set-TaniumClientDeployDirectory-Package.ps1` | sets the global Tanium Client Deploy directory path | admin/API script (TaniumClient module function) | no | none found | keep |
+| `Admin/Office/Set-TaniumClientDeployLogLevel-Package.ps1` | rewrites the Deploy log level in configure.py | admin/API script (TaniumClient module function) | no | none found | keep |
+| `Admin/Office/Set-TaniumClientPatchDirectory-Package.ps1` | sets the global Tanium Client Patch directory path | admin/API script (TaniumClient module function) | no | none found | keep |
+| `Admin/Office/Set-TaniumClientPatchProcessOptions-Package.ps1` | rewrites the Patch settings-file with a chosen log level | admin/API script (TaniumClient module function) | no | none found | keep |
+| `Admin/Office/Start-TaniumClientDeployCatalogScan-Package.ps1` | runs a Deploy catalog scan via TPython | admin/API script (TaniumClient module function) | no | none found | keep |
+| `Admin/Office/Start-TaniumClientDeploySelfServiceClient-Package.ps1` | launches the Deploy end-user notifications client for self-service | admin/API script (TaniumClient module function) | no | none found | keep |
+| `Admin/Office/Start-TaniumClientDeploySelfServiceScan-Package.ps1` | runs a Deploy self-service catalog update via TPython | admin/API script (TaniumClient module function) | no | none found | keep |
+| `Admin/Office/Start-TaniumClientDeployWakeUp-Package.ps1` | runs a Deploy single-iteration via TPython | admin/API script (TaniumClient module function) | no | none found | keep |
+| `Admin/Office/Start-TaniumClientPatchProcess-Package.ps1` | starts the Patch process via cscript tanium-patch.min.vbs | admin/API script (TaniumClient module function) | no | calls undefined Get-TaniumClientPatchProcess/Get-Bitness; runs .vbs; else none | keep |
+| `Admin/Office/Stop-TaniumClientPatchManagerProcess-Package.ps1` | stops the Patch manager process | admin/API script (TaniumClient module function) | no | calls undefined Get-TaniumClientPatchManagerProcess; else none | keep |
+| `Admin/Office/Stop-TaniumClientPatchProcess-Package.ps1` | stops the Patch process | admin/API script (TaniumClient module function) | no | calls undefined Get-TaniumClientPatchProcess; else none | keep |
+| `Admin/Office/Stop-TaniumClientPatchTswProcess-Package.ps1` | sends a stop-update-service command to the Patch TSW via CX mailbox | admin/API script (TaniumClient module function) | no | calls undefined Get-TaniumClientPatchTswProcess; else none | keep |
+| `Admin/Office/Sync-TaniumClientDeployConfig-Package.ps1` | syncs Deploy endpoint configs with CX via TPython | admin/API script (TaniumClient module function) | no | none found | keep |
+| `Admin/Office/Test-TaniumClientPatchTswDbPath-Package.ps1` | tests whether an applicable product's TSW database path exists | admin/API script (TaniumClient module function) | no | none found | keep |
+| `Admin/Office/Update-TaniumClientPatchDeployment-Package.ps1` | updates a Patch deployment's end time and overrides | admin/API script (TaniumClient module function) | no | none found | keep |
+| `Admin/Software/TaniumClientDeployProductInstallId/Get-TaniumClientDeployProductInstallId-Package.ps1` | returns the Deploy product install id from the SQLite database | admin/API script (TaniumClient module function) | no | none found | keep |
+| `Admin/Software/TaniumClientDeploySoftwareBundle/Get-TaniumClientDeploySoftwareBundle-Package.ps1` | queries Deploy software bundles from the SQLite database | admin/API script (TaniumClient module function) | no | none found | keep |
+| `Admin/Software/TaniumClientDeploySoftwarePackage/Get-TaniumClientDeploySoftwarePackage-Package.ps1` | queries Deploy software packages from the SQLite database | admin/API script (TaniumClient module function) | no | none found | keep |
+| `Admin/Software/UpdateCatalogPackage/Get-UpdateCatalogPackage.ps1` | fetches Windows updates from MS Update Catalog and generates Tanium Deploy packages | admin/API script | no | none found | keep |
+| `Admin/Software/WinGetPackage/7-Zip/25.01/machine/Install-7-Zip.ps1` | generated Tanium Deploy install script for 7-Zip 25.01 | deploy package | yes | none found | keep |
+| `Admin/Software/WinGetPackage/7-Zip/25.01/machine/Remove-7-Zip.ps1` | generated Tanium Deploy remove script for 7-Zip 25.01 | deploy package | yes | none found | keep |
+| `Admin/Software/WinGetPackage/Get-WinGetPackage.ps1` | fetches WinGet package info and generates Tanium Deploy packages | admin/API script | no | none found | keep |
+| `Admin/Software/WinGetPackage/Windows Notepad/Unknown/machine/Install-Windows Notepad.ps1` | generated Tanium Deploy install script for Windows Notepad (MSIX) | deploy package | yes | none found | keep |
+| `Admin/Software/WinGetPackage/Windows Notepad/Unknown/machine/Remove-Windows Notepad.ps1` | generated Tanium Deploy remove script for Windows Notepad (MSIX) | deploy package | yes | none found | keep |
+| `Admin/System/Invoke-TaniumClientPatchPostUpgradePatchDeployment-Package.ps1` | removes action lock, starts Patch, forces a scan and creates a deployment | admin/API script (TaniumClient module function) | no | none found | keep |
+| `Archive/Deploy-Packages/Invoke-Win10Upgrade/Invoke-Win10Upgrade-Package.ps1` | Tanium Deploy wrapper running a Windows 10 in-place upgrade (Part 3) | archive (deploy package) | yes | 5.1-only Get-WmiObject; already in Archive/ (legacy Win10 IPU); signed | retire |
+| `Modules/TaniumClient.psm1` | dot-sources all .ps1 under Modules/ recursively (leftover module loader) | module | no | none found | keep |
+| `Modules/TaniumDeployPackage/Classes/PackageMetadata.Class.ps1` | PackageMetadata PowerShell class for Tanium Deploy package metadata | module | no | none found | keep |
+| `Modules/TaniumDeployPackage/Private/Get-ArchitectureFromString.ps1` | parses an architecture string (x64/x86/ARM64) | module | no | none found | keep |
+| `Modules/TaniumDeployPackage/Private/Get-CompactOSName.ps1` | maps an OS string to a compact name (Win10/Win11/WinSvr...) | module | no | none found | keep |
+| `Modules/TaniumDeployPackage/Private/Get-InstallerVersion.ps1` | extracts version info from MSIX/AppX/MSI installer files | module | no | none found | keep |
+| `Modules/TaniumDeployPackage/Private/Get-SizeInMB.ps1` | converts a size string (KB/MB/GB) to megabytes | module | no | none found | keep |
+| `Modules/TaniumDeployPackage/Public/Get-InstallerDefaults.ps1` | loads installer type defaults (switches, timeouts, success codes) | module | no | none found | keep |
+| `Modules/TaniumDeployPackage/Public/Invoke-FileDownload.ps1` | downloads a file via BITS with WebClient fallback | module | no | none found | keep |
+| `Modules/TaniumDeployPackage/Public/New-InstallScript.ps1` | generates a Tanium Deploy install wrapper script | module | no | none found | keep |
+| `Modules/TaniumDeployPackage/Public/New-MsixInstallScript.ps1` | generates an MSIX/AppX install wrapper script | module | no | none found | keep |
+| `Modules/TaniumDeployPackage/Public/New-MsixRemoveScript.ps1` | generates an MSIX/AppX removal wrapper script | module | no | none found | keep |
+| `Modules/TaniumDeployPackage/Public/New-PackageReadme.ps1` | generates a Tanium Deploy package README | module | no | none found | keep |
+| `Modules/TaniumDeployPackage/Public/New-RemoveScript.ps1` | generates a Tanium Deploy remove wrapper script | module | no | none found | keep |
+| `Modules/TaniumDeployPackage/Public/New-TaniumDeployMetadata.ps1` | generates Tanium Deploy JSON metadata for Windows updates | module | no | none found | keep |
+| `Modules/TaniumDeployPackage/TaniumDeployPackage.psm1` | module loader for the TaniumDeployPackage module | module | no | none found | keep |
+| `Packages/FileSystem/Copy-DBVisLicFile-Package.ps1` | writes an embedded DbVisualizer license file to the primary user's .dbvis folder | platform package | yes | PSSA false positive (Get-CimInstance -Class abbrev); embeds license key | retire |
+| `Packages/FileSystem/Get-PrimaryorLoggedInUserProfilePath-Package.ps1` | returns the primary or most recently used user profile path from the Tanium ADQuery inventory | platform package | yes | none found | keep |
+| `Packages/FileSystem/Get-TaniumClientFileModificationTime-Package.ps1` | returns the last write time of a file | admin/API script (TaniumClient module function) | no | none found | keep |
+| `Packages/FileSystem/NewSafeDiskCleanUp-Package.ps1` | rate-limited disk cleanup package (cleanup body is a placeholder) | platform package | yes | cleanup body is a placeholder comment; C:\Contoso path; else none | retire |
+| `Packages/General/BulkSNTix-Package.ps1` | interactive ServiceNow incident generator from a CSV feed | platform package | yes | Send-MailMessage (removed in 7.x); PSSA false positives (Clear-Host/cls); interactive | retire |
+| `Packages/General/CreateChromeBackupScheduledTask-Package.ps1` | registers a logon scheduled task to back up Chrome bookmarks | platform package | yes | hard-codes C:\Contoso path and a script not in this repo; else none | move |
+| `Packages/General/Generate-InventoryReports-Package.ps1` | generates five analysis markdown reports from INVENTORY.csv | platform package | yes | PSSA false positives (Write-Log local); #Requires 5.1; one-time tooling | retire |
+| `Packages/General/Get-MSExchData-Package.ps1` | collects Exchange server data from AD and writes it to the Tanium Client Tools folder | platform package | yes | ADSI [adsi] (Windows-only, fine on 7.x); PSSA false positives (Write-Log local) | retire |
+| `Packages/General/Implement-Reorganization-Package.ps1` | orchestrates splitting the monolithic collection into Tanium and Utilities repos | platform package | yes | PSSA false positives (Write-Log local); #Requires 5.1; one-time tooling | retire |
+| `Packages/General/New-TaniumClientEndUserNotification-Package.ps1` | creates and shows a Tanium end-user notification | admin/API script (TaniumClient module function) | no | Get-WmiObject fallback; calls undefined Test-InteractiveLogonUser; else none | keep |
+| `Packages/General/Read-TaniumClientCxMailbox-Package.ps1` | reads (and optionally removes) a Tanium Client CX mailbox message | admin/API script (TaniumClient module function) | no | none found | keep |
+| `Packages/General/Set-Mig_LocationTag-Package.ps1` | sets MIG location/specific-location tags on the Tanium Client from network scope | platform package | yes | 5.1-only Get-WmiObject; hard-coded DoD IP ranges; Registry64 | retire |
+| `Packages/General/WQL-LastModifiedExample-Package.ps1` | one-line WQL example reading a file's LastModified | platform package | yes | 5.1-only Get-WmiObject; example stub | retire |
+| `Packages/Maintenance/Remove-ExpiredRateLimits-Package.ps1` | removes expired rate-limit registry entries under the Tanium Client Sensor Data | platform package | yes | none found | keep |
+| `Packages/Network/Create-ScriptInventory-Package.ps1` | generates INVENTORY.csv by scanning PowerShell files for metadata and recommendations | platform package | yes | #Requires 5.1; one-time tooling; none else | retire |
+| `Packages/Office/Disable-TaniumClientActionLock-Package.ps1` | clears the Tanium Client action lock flag | admin/API script (TaniumClient module function) | no | none found | keep |
+| `Packages/Office/Disable-TaniumClientTpythonDebug-Package.ps1` | clears the TPython debug flag | admin/API script (TaniumClient module function) | no | none found | keep |
+| `Packages/Office/Enable-TaniumClientActionLock-Package.ps1` | sets the Tanium Client action lock flag | admin/API script (TaniumClient module function) | no | none found | keep |
+| `Packages/Office/Enable-TaniumClientTpythonDebug-Package.ps1` | sets the TPython debug flag | admin/API script (TaniumClient module function) | no | none found | keep |
+| `Packages/Office/Get-TaniumClient-Package.ps1` | returns or caches the Tanium Client executable path | admin/API script (TaniumClient module function) | no | none found | keep |
+| `Packages/Office/Get-TaniumClientActionHistoryStatistics-Package.ps1` | summarizes Tanium Client action history timings | admin/API script (TaniumClient module function) | no | none found | keep |
+| `Packages/Office/Get-TaniumClientActionLock-Package.ps1` | returns whether the Tanium Client action lock is set | admin/API script (TaniumClient module function) | no | none found | keep |
+| `Packages/Office/Get-TaniumClientApiToken-Package.ps1` | reads the Tanium Client soap_session token | admin/API script (TaniumClient module function) | no | none found | keep |
+| `Packages/Office/Get-TaniumClientCustomTag-Package.ps1` | lists custom tags under the Tanium Client Sensor Data registry | admin/API script (TaniumClient module function) | no | none found | keep |
+| `Packages/Office/Get-TaniumClientCxConfigurationManifestRevision-Package.ps1` | reads the CX configuration manifest revision via the mailbox | admin/API script (TaniumClient module function) | no | none found | keep |
+| `Packages/Office/Get-TaniumClientDbTable-Package.ps1` | queries an arbitrary table from a given SQLite database | admin/API script (TaniumClient module function) | no | none found | keep |
+| `Packages/Office/Get-TaniumClientDirectory-Package.ps1` | returns or caches the Tanium Client installation directory | admin/API script (TaniumClient module function) | no | Get-WmiObject fallback (guarded by Test-Command); else none | keep |
+| `Packages/Office/Get-TaniumClientEndpointConfigurationTool-Package.ps1` | queries endpoint configuration tools from tools.db | admin/API script (TaniumClient module function) | no | none found | keep |
+| `Packages/Office/Get-TaniumClientHardening-Package.ps1` | reports Tanium Client hardening (ControlPanel, Service, FileSystem) | admin/API script (TaniumClient module function) | no | Invoke-Expression (sc.exe/icacls, R-04); else none | keep |
+| `Packages/Office/Get-TaniumClientListenPort-Package.ps1` | returns the Tanium Client listen port | admin/API script (TaniumClient module function) | no | none found | keep |
+| `Packages/Office/Get-TaniumClientLog-Package.ps1` | tails a Tanium Client log with optional filter | admin/API script (TaniumClient module function) | no | Invoke-Expression (R-04); else none | keep |
+| `Packages/Office/Get-TaniumClientSensorHistoryStatistics-Package.ps1` | summarizes sensor history timings from the sensor-history log | admin/API script (TaniumClient module function) | no | none found | keep |
+| `Packages/Office/Get-TaniumClientSetting-Package.ps1` | reads a Tanium Client setting from the registry (or CLI on non-Windows) | admin/API script (TaniumClient module function) | no | none found | keep |
+| `Packages/Office/Get-TaniumClientSettingCli-Package.ps1` | reads a Tanium Client setting via the TaniumClient CLI | admin/API script (TaniumClient module function) | no | none found | keep |
+| `Packages/Office/Get-TaniumClientSize-Package.ps1` | returns the size of a path in GB | admin/API script (TaniumClient module function) | no | none found | keep |
+| `Packages/Office/Get-TaniumClientSoapPort-Package.ps1` | returns the Tanium Client SOAP port (listen port + 1) | admin/API script (TaniumClient module function) | no | none found | keep |
+| `Packages/Office/Get-TaniumClientTpython-Package.ps1` | returns the TPython executable path | admin/API script (TaniumClient module function) | no | none found | keep |
+| `Packages/Office/Get-TaniumClientTpythonDebug-Package.ps1` | returns the TPython debug flag setting | admin/API script (TaniumClient module function) | no | none found | keep |
+| `Packages/Office/Get-TaniumClientVdiSetting-Package.ps1` | reads the Tanium Client VDI settings | admin/API script (TaniumClient module function) | no | none found | keep |
+| `Packages/Office/Get-TaniumClientVersion-Package.ps1` | returns the Tanium Client version | admin/API script (TaniumClient module function) | no | none found | keep |
+| `Packages/Office/New-TaniumClientCustomTag-Package.ps1` | creates custom tags under the Tanium Client Sensor Data registry | admin/API script (TaniumClient module function) | no | none found | keep |
+| `Packages/Office/Remove-TaniumClientCustomTag-Package.ps1` | removes custom tags under the Tanium Client Sensor Data registry | admin/API script (TaniumClient module function) | no | none found | keep |
+| `Packages/Office/Remove-TaniumClientSetting-Package.ps1` | removes a Tanium Client registry setting | admin/API script (TaniumClient module function) | no | none found | keep |
+| `Packages/Office/Remove-TaniumClientVdiSetting-Package.ps1` | removes the Tanium Client VDI settings and resets verbosity | admin/API script (TaniumClient module function) | no | none found | keep |
+| `Packages/Office/Restart-TaniumClient-Package.ps1` | stops and starts the Tanium Client service | admin/API script (TaniumClient module function) | no | none found | keep |
+| `Packages/Office/Restart-TaniumClientCx-Package.ps1` | restarts the Tanium Client CX via the mailbox | admin/API script (TaniumClient module function) | no | none found | keep |
+| `Packages/Office/Set-TaniumClientSetting-Package.ps1` | sets a Tanium Client registry setting (or CLI on non-Windows) | admin/API script (TaniumClient module function) | no | none found | keep |
+| `Packages/Office/Set-TaniumClientSettingCli-Package.ps1` | sets a Tanium Client setting via the TaniumClient CLI | admin/API script (TaniumClient module function) | no | none found | keep |
+| `Packages/Office/Set-TaniumClientVdiSetting-Package.ps1` | sets the Tanium Client VDI settings | admin/API script (TaniumClient module function) | no | none found | keep |
+| `Packages/Office/Start-TaniumClient-Package.ps1` | starts the Tanium Client service | admin/API script (TaniumClient module function) | no | none found | keep |
+| `Packages/Office/TaniumClient.psd1-Package.ps1` | module manifest for the TaniumClient module (misnamed .ps1) | module (manifest) | no | none found | keep |
+| `Packages/Office/Test-Office64bit-Package.ps1` | reports whether Outlook is 64-bit by parsing its PE header | platform package | yes | none found | keep |
+| `Packages/Office/Test-TaniumClientDirectoryAccess-Package.ps1` | tests whether the Tanium Client directory is readable | admin/API script (TaniumClient module function) | no | none found | keep |
+| `Packages/Office/Test-TaniumClientPeering-Package.ps1` | tests whether the Tanium Client is peering | admin/API script (TaniumClient module function) | no | calls undefined Get-TaniumClientPeer; else none | keep |
+| `Packages/Office/Write-TaniumClientCxMailbox-Package.ps1` | writes a message file to a Tanium Client CX mailbox | admin/API script (TaniumClient module function) | no | none found | keep |
+| `Packages/Registry/Get-TaniumClientRegistryPath-Package.ps1` | returns the Tanium Client registry path based on bitness | admin/API script (TaniumClient module function) | no | none found | keep |
+| `Packages/Registry/Get-TaniumClientUninstallRegistry-Package.ps1` | returns the Tanium Client uninstall registry path | admin/API script (TaniumClient module function) | no | none found | keep |
+| `Packages/Security/Get-ClientAuthenticationCerts-Package.ps1` | collects client auth certificates and exports them to JSON | platform package | yes | none found; hard-coded C:\DesktopSupportTools path | retire |
+| `Packages/Security/Get-ClientAuthenticationCertsfromJSON-Package.ps1` | imports client auth certificates from a JSON file to CSV output | platform package | yes | none found; hard-coded C:\DesktopSupportTools path | retire |
+| `Packages/Security/Set-ClientAuthenticationCertstoJSON-Package.ps1` | collects client auth certificates and writes them to a JSON file | platform package | yes | none found; hard-coded C:\DesktopSupportTools path | retire |
+| `Packages/System/DisableSMBv3Compression.ps1` | sets the SMB server DisableCompression registry value | platform package | yes | sets DisableCompression=0 which ENABLES compression; should be 1; none else | fix |
+| `Packages/System/EnableSMBv3Compression.ps1` | sets the SMB server DisableCompression registry value to enable compression | platform package | yes | none found | keep |
+| `Packages/System/Get-TaniumClientProcessLoadedModules-Package.ps1` | lists loaded modules for Tanium Client processes | admin/API script (TaniumClient module function) | no | 32-bit powershell.exe relaunch (SysWOW64); calls undefined Test-Process/Get-ProcessBitness | keep |
+| `Packages/System/GetWindows10OSSKU-Package.ps1` | maps the OS SKU number to a friendly name via CIM | platform package | yes | none found | keep |
+| `Packages/System/RepairWMI-Package.ps1` | backs up, stops, repairs and restarts the WMI repository | platform package | yes | 5.1-only Get-WmiObject/[WMIClass]; org-specific Contoso key; C:\DesktopSupportTools | retire |
+| `Packages/System/TaniumSucks-Package.ps1` | empty stub that writes a placeholder text file | platform package | yes | empty stub (writes testfile.txt); none else | retire |
+| `Packages/System/parseCBSLOG-Package.ps1` | parses CBS.log for SFC repairs and exports them to CSV | platform package | yes | none found | keep |
+| `Packages/Templates/RateLimiting-Helpers.ps1` | copy-paste rate-limiting helper functions for platform packages | platform package | yes | none found | keep |
+| `Sensors/General/Generate-RenamePlan-Sensor.ps1` | generates RENAME_PLAN.csv renaming proposals from INVENTORY.csv | sensor | yes | #Requires 5.1; one-time tooling; none else | retire |
+| `Sensors/Get-ComputerInfo.ps1` | reports the computer model (Lenovo-aware) | sensor | yes | 5.1-only Get-WmiObject; references undefined $system (should be $ComputerSystem); Write-Host | fix |
+| `Sensors/Get-PrimaryUserManager.ps1` | reports the primary user's manager from the Tanium ADQuery inventory | sensor | yes | none found | keep |
+| `Sensors/Get-RateLimitStatus.ps1` | enumerates platform package rate limits with expiration status | sensor | yes | none found | keep |
+| `Sensors/GetLastLoggedInUserDetails.ps1` | reports the last logged-in user's AD details pipe-delimited | sensor | yes | none found | keep |
+| `Sensors/GetOSBrandName.ps1` | reports the OS release display version from the registry | sensor | yes | none found | keep |
+| `Sensors/GetOSSetupDate.ps1` | reports the OS installation date | sensor | yes | none found | keep |
+| `Sensors/GetOdbcDsnsToJSON.ps1` | exports each ODBC DSN to a JSON file under DesktopSupportTools | sensor | yes | writes JSON files (not read-only); hard-coded C:\DesktopSupportTools path | retire |
+| `Sensors/GetPrimaryUserLocation.ps1` | reports the primary user's office location from the ADQuery inventory | sensor | yes | none found | keep |
+| `Sensors/GetSystemDriveBusandMediaType.ps1` | reports the system drive bus type and disk media type | sensor | yes | none found | keep |
+| `Sensors/Get_SecureBootStatus.ps1` | reports whether Secure Boot is enabled | sensor | yes | none found | keep |
+| `Sensors/HasWirelessAdapter.ps1` | reports whether the machine has a Wi-Fi adapter | sensor | yes | none found | keep |
+| `Sensors/System/MIGPendingRebootforTanium-Sensor.ps1` | reports pending reboot state (the classic Get-PendingReboot function) | sensor | yes | 5.1-only Get-WmiObject/[WMIClass]; Sysnative relaunch (documented pattern); runs on 5.1 | keep |
