@@ -84,7 +84,7 @@ msiexec.exe /fa "package.msi" ALLUSERS=1 /qn /norestart /l*v "C:\path\to\repair.
 | 1638 | Another version installed | Check Product Code, return 0 if already installed |
 | 1603 | Fatal error | Return 1603, check logs |
 
-See [DOCUMENTATION_STANDARDS.md - MSI Idempotency](../DOCUMENTATION_STANDARDS.md#msi-idempotency-considerations) for complete details.
+See [STANDARDS.md - Deploy exit codes](../STANDARDS.md#r-27-exit-codes) for complete details.
 
 ### Installation State Check
 
