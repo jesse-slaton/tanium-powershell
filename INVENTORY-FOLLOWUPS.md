@@ -58,7 +58,8 @@ test stub, and records the removal in `ARCHIVED.md`.
   this issue, records the commit SHA this part runs from (the last commit that still contains the
   files), and a `Path | What it did` table (descriptions from `INVENTORY.md`), noting each file can
   be restored with `git show <sha>:"<path>"`.
-- No remaining script, test, docs page or README references a removed script by its old path. Grep
+- No remaining script, test, docs page or README references a removed script by its old path
+  (including the `Sensors/README.md` and `Packages/README.md` tables and any `docs/` index). Grep
   the repository for each archived path and allow matches only in `ARCHIVED.md`, `INVENTORY.md` and
   `INVENTORY-FOLLOWUPS.md`, which keep the record on purpose.
 - The Pester suite still passes after the moves and removals.
@@ -95,7 +96,8 @@ test stub, and records the removal in `ARCHIVED.md`.
 - Each script's docs page and test stub (listed above) are removed with it.
 - Append to `ARCHIVED.md` a dated section that names this issue, records the commit SHA this part
   runs from, and a `Path | What it did` table with the same `git show <sha>:"<path>"` restore note.
-- No remaining script, test, docs page or README references a removed script by its old path. Grep
+- No remaining script, test, docs page or README references a removed script by its old path
+  (including the `Sensors/README.md` and `Packages/README.md` tables and any `docs/` index). Grep
   the repository for each archived path and allow matches only in `ARCHIVED.md`, `INVENTORY.md` and
   `INVENTORY-FOLLOWUPS.md`, which keep the record on purpose.
 - The Pester suite still passes after the moves and removals.
@@ -130,7 +132,8 @@ lands.
   `RootModule` and the module path, or document and implement the packaging step that colocates
   `Modules/TaniumClient.psm1` with the manifest); also add the exported helpers that have no file
   (`Get-PowerShellType`, `Get-Bitness`, `Test-Command`, `Read-XmlFile`, `Test-XmlFile`, `New-Download`,
-  and the Patch process getters) or trim `FunctionsToExport`.
+  and the Patch process getters) or trim `FunctionsToExport`. Any helper file added is also listed in
+  `FunctionsToExport`, and any export with no file is removed, so the public API matches the files.
 - `Admin/Office/Get-TaniumClientPatchListApplicability-Package.ps1`: finish the applicability evaluation
   so it emits a result, removing the placeholder logic.
 
