@@ -100,7 +100,9 @@ See [DEV_ENVIRONMENT.md](./DEV_ENVIRONMENT.md) for:
    scan uses the copy of that file from the pull request's base commit).
 7. Save every `.ps1`, `.psm1` and `.psd1` as UTF-8, with a byte order mark when it holds
    non-ASCII text, never as UTF-16. Secret scanners cannot read UTF-16, and
-   `Tests/Encoding.Tests.ps1` fails the build on it.
+   `Tests/Encoding.Tests.ps1` is the fast local check, and the Gitleaks workflow enforces the
+   UTF-16 part on every commit of a pull request (a UTF-16 file fails the job even if a later
+   commit re-encodes it).
 
 ## Documentation
 

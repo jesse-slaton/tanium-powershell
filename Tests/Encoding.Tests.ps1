@@ -5,6 +5,9 @@
 # PowerShell 5.1 has to read non-ASCII text, which the test enforces) and hold no control character other than tab, LF, FF
 # and CR. That rejects UTF-16 with or without a BOM: ASCII text in UTF-16 has NUL bytes, and other
 # BOM-less UTF-16 is either invalid UTF-8 or holds control bytes (U+0101 is the bytes 01 01).
+# This test is the fast local check. The Gitleaks workflow (.github/workflows/gitleaks.yml) enforces
+# the UTF-16 part of the rule on every commit of a pull request, from the base branch's copy of
+# the workflow, so a change cannot skip it or fix the file in a later commit.
 # Issue #34.
 
 BeforeAll {
