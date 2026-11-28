@@ -499,7 +499,9 @@ function Get-PEInfo {
 [string]$teststring = [System.Uri]::UnescapeDataString('||strFiles||')
 $filenames = $teststring -split ',' | ForEach-Object { $_.Trim() } | Where-Object { $_ -ne '' }
 foreach ($filename in $filenames) {
-    $path = $filename
+    # Normalize forward slashes so C:/Windows/System32/... is handled like the
+    # backslash form; the original label is preserved in the output.
+    $path = $filename.Replace('/', '\')
     if (-not [Environment]::Is64BitProcess -and [Environment]::Is64BitOperatingSystem) {
         # A 32-bit process on 64-bit Windows reads $env:windir\System32 through the
         # SysWOW64 redirection; Sysnative reaches the 64-bit file. Rewrite only the

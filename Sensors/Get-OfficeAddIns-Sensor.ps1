@@ -81,11 +81,11 @@ $ArrayofOfficeAddins = @($HKCUBasePath, $HKLMBasePath, $HKLM32BasePath) | ForEac
     @{n = 'Name'; e = { Split-Path $_.PSPath -Leaf } },
     FriendlyName,
     @{n = 'LoadBehavior'; e = { $LoadBehaviorHashTable.($_.LoadBehavior) } } |
-    Sort-Object -Unique -Property name
+    Where-Object { $null -ne $_.LoadBehavior } |
+    Sort-Object -Unique -Property Hive, Architecture, Name
 
 try {
     $ArrayofOfficeAddins |
-        Where-Object { $null -ne $_.LoadBehavior } |
         ConvertTo-Csv -Delimiter '|' -NoTypeInformation |
         Select-Object -Skip 1 |
         ForEach-Object { $_.Replace('"', '') } |

@@ -104,7 +104,7 @@ foreach ($Network in $Networks) {
         # No IPv4 address on this adapter: there is no network to compute.
         continue
     }
-    [ipaddress] $IPAddress = $IPv4Addresses[0]
+    [ipaddress] $IPAddress = @($IPv4Addresses)[0]
     $IPv4Subnet = @($Network.IPSubnet) | Where-Object { $_ -match '^\d{1,3}(\.\d{1,3}){3}$' } | Select-Object -First 1
     if (-not $IPv4Subnet) {
         # No IPv4 subnet to pair with the address: skip rather than compute a wrong mask.
@@ -112,17 +112,17 @@ foreach ($Network in $Networks) {
     }
     [ipaddress] $SubnetMask = $IPv4Subnet
     [ipaddress] $NetAddr = ($IPAddress.Address -band $SubnetMask.Address)
-    $GatewayMetric = @($Network.GatewayCostMetric)[0]
-    if ($null -eq $GatewayMetric) {
+    $GatewayMetrics = @($Network.GatewayCostMetric | Where-Object { $null -ne $_ })
+    if ($GatewayMetrics.Count -eq 0) {
         # No default gateway on this adapter: it cannot be the primary route.
         continue
     }
-    $RouteCostMetric = [int]$GatewayMetric
-    if ($RouteCostMetric -eq 0) {
-        # A metric of 0 is an automatic estimate, not the best route; treat it as the
-        # largest cost so any explicit metric wins.
-        $RouteCostMetric = [int]::MaxValue
-    }
+    # A metric of 0 is an automatic estimate, not the best route; map it to the largest
+    # cost, then keep the smallest metric across this adapter's gateways.
+    $RouteCostMetric = ($GatewayMetrics | ForEach-Object {
+        $metric = [int]$_
+        if ($metric -eq 0) { [int]::MaxValue } else { $metric }
+    } | Measure-Object -Minimum).Minimum
     $OutputObj += [pscustomobject]@{
         IPAddress       = $IPAddress
         SubnetMask      = $SubnetMask

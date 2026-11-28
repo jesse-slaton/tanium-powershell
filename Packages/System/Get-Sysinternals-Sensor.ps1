@@ -149,49 +149,69 @@ function Update-Sysinternals {
 # Verify the trust boundary of a path before restarting an executable from it.
 #
 # Trust rule: the path is trusted only when no Allow access rule grants a write-class
-# right (Write, Modify, FullControl, CreateFiles, or AppendData) to a principal other
-# than BUILTIN\Administrators, NT AUTHORITY\SYSTEM, or NT SERVICE\TrustedInstaller. Such
-# write access would let a non-trusted principal replace the executable, so an elevated
-# restart must not run it. This only reads the ACL; it never changes it.
+# right (Write, Modify, FullControl, CreateFiles, AppendData, ChangePermissions, or
+# TakeOwnership) to a principal other than the three trusted identities (Administrators,
+# SYSTEM, or TrustedInstaller, compared by SID so the check is locale-independent). Such
+# rights would let a non-trusted principal replace the executable, so an elevated restart
+# must not run it. This only reads the ACL; it never changes it.
 function Test-TrustedRestartPath {
     param(
         [Parameter(Mandatory = $true)]
         [string]$Path
     )
 
-    $TrustedPrincipals = @(
-        'BUILTIN\Administrators'
-        'NT AUTHORITY\SYSTEM'
-        'NT SERVICE\TrustedInstaller'
+    $TrustedSids = @(
+        'S-1-5-32-544'                                                    # BUILTIN\Administrators
+        'S-1-5-18'                                                        # NT AUTHORITY\SYSTEM
+        'S-1-5-80-956008885-3418522649-1831038044-1853292631-2271478464'  # NT SERVICE\TrustedInstaller
     )
-    $WriteRights = @(
+    $UntrustedRights = @(
         [System.Security.AccessControl.FileSystemRights]::Write
         [System.Security.AccessControl.FileSystemRights]::Modify
         [System.Security.AccessControl.FileSystemRights]::FullControl
         [System.Security.AccessControl.FileSystemRights]::CreateFiles
         [System.Security.AccessControl.FileSystemRights]::AppendData
+        [System.Security.AccessControl.FileSystemRights]::ChangePermissions
+        [System.Security.AccessControl.FileSystemRights]::TakeOwnership
     )
 
     if (-not (Test-Path -LiteralPath $Path)) {
         return [pscustomobject]@{ Trusted = $false; Path = $Path; Reason = 'path not found' }
     }
 
-    $Acl = Get-Acl -LiteralPath $Path
+    try {
+        $Acl = Get-Acl -LiteralPath $Path -ErrorAction Stop
+    }
+    catch {
+        return [pscustomobject]@{ Trusted = $false; Path = $Path; Reason = "cannot read ACL: $($_.Exception.Message)" }
+    }
+    if ($null -eq $Acl) {
+        return [pscustomobject]@{ Trusted = $false; Path = $Path; Reason = 'ACL is null' }
+    }
+
     foreach ($Rule in $Acl.Access) {
         if ($Rule.AccessControlType -ne [System.Security.AccessControl.AccessControlType]::Allow) {
             continue
         }
         $Identity = $Rule.IdentityReference.Value
-        if ($TrustedPrincipals -contains $Identity) {
+        # Compare by SID so the check does not depend on the localized account name.
+        try {
+            $Sid = $Rule.IdentityReference.Translate([System.Security.Principal.SecurityIdentifier]).Value
+        }
+        catch {
+            # An identity that cannot be resolved to a SID is not a trusted principal.
+            $Sid = $null
+        }
+        if ($Sid -in $TrustedSids) {
             continue
         }
         $Rights = [System.Security.AccessControl.FileSystemRights]$Rule.FileSystemRights
-        foreach ($Right in $WriteRights) {
+        foreach ($Right in $UntrustedRights) {
             if (($Rights -band $Right) -eq $Right) {
                 return [pscustomobject]@{
                     Trusted = $false
                     Path    = $Path
-                    Reason  = "writable by untrusted principal '$Identity'"
+                    Reason  = "modifiable by untrusted principal '$Identity'"
                 }
             }
         }

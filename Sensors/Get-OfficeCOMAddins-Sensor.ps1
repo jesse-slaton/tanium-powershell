@@ -65,19 +65,26 @@ Switch ((Get-ItemProperty $CTRPath -ErrorAction SilentlyContinue).Platform) {
 $searchScopes = "HKCU:\SOFTWARE\Microsoft\Office", $HKLMPath
 
 $addinKeys = @()
-$readErrors = @()
+$addinReadErrors = @()
 foreach ($scope in $searchScopes) {
     if (-not (Test-Path -LiteralPath $scope)) {
         # The hive is absent on this machine; there are no add-ins to report for it.
         continue
     }
-    # A single denied subkey is skipped, not fatal: -ErrorAction SilentlyContinue keeps
-    # the recursion going so one unreadable key does not silently drop later add-ins.
-    $addinKeys += @(Get-ChildItem -LiteralPath $scope -Recurse -ErrorAction SilentlyContinue -ErrorVariable +readErrors)
+    # Enumerate each product's Addins key directly, so a denied Addins read is tracked
+    # separately from unrelated Office keys and cannot be masked by a readable key. A
+    # single denied subkey is skipped, not fatal.
+    $products = @(Get-ChildItem -LiteralPath $scope -ErrorAction SilentlyContinue -ErrorVariable +addinReadErrors)
+    foreach ($product in $products) {
+        $addinsPath = Join-Path -Path $product.PSPath -ChildPath 'Addins'
+        if (Test-Path -LiteralPath $addinsPath) {
+            $addinKeys += @(Get-ChildItem -LiteralPath $addinsPath -Recurse -ErrorAction SilentlyContinue -ErrorVariable +addinReadErrors)
+        }
+    }
 }
 
 $Addins = $addinKeys |
-    Where-Object { ($_.PSPath -like '*\Addins\*') -and ($_.ValueCount -gt 0) } |
+    Where-Object { $_.ValueCount -gt 0 } |
     ForEach-Object { Get-ItemProperty -Path $_.PSPath } |
     Select-Object @{n = "Name"; e = { Split-Path $_.PSPath -leaf } },
         @{n = "Product"; e = { (($_.PSPath -split '\\')[0, -3])[1] } },
@@ -87,10 +94,10 @@ $Addins = $addinKeys |
     Where-Object { $null -ne $_.Loadbehavior } |
     Sort-Object -Property Product, Name -Unique
 
-if ($readErrors.Count -gt 0 -and $addinKeys.Count -eq 0) {
-    # Nothing at all could be read (every present hive was denied); report it rather
-    # than silently emitting an empty inventory.
-    Write-Output "Error: $($readErrors[0].Exception.Message)"
+if ($addinReadErrors.Count -gt 0 -and $addinKeys.Count -eq 0) {
+    # No add-in key could be read (every present Addins key was denied); report it
+    # rather than silently emitting an empty inventory.
+    Write-Output "Error: $($addinReadErrors[0].Exception.Message)"
 }
 
 try {
