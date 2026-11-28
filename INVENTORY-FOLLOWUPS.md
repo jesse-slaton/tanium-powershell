@@ -570,9 +570,9 @@ destination repository.
 
 ## Test parts (epic #62, milestone M7)
 
-Survivors that stay in this repository (Decision `keep` or `fix`). Every one is listed here because it
-has only a parse-only test stub today, not a behavior test. The moved script is handled by the move part
-and gets its tests in the destination repository.
+Survivors that stay in this repository (Decision `keep` or `fix`). Every one is listed here: most
+have only a parse-only test stub today, and a survivor with no test file gets a new one. The moved
+script is handled by the move part and gets its tests in the destination repository.
 
 ### Test part 1 of 17
 
@@ -595,8 +595,9 @@ and gets its tests in the destination repository.
 
 **Acceptance criteria:**
 
-- Each script gets behavior tests (not just the parse-only stub), covering its real success path and
-  at least one failure or edge case, without changing the machine the tests run on.
+- Each script gets behavior tests, replacing its parse-only stub where one exists (or as a new test
+  file where none does), covering its real success path and at least one failure or edge case,
+  without changing the machine the tests run on.
 - Tests follow the `Tests/Unit` and `Tests/TestHelpers.psm1` conventions.
 - The full Pester suite passes, including the new tests.
 
@@ -621,8 +622,9 @@ and gets its tests in the destination repository.
 
 **Acceptance criteria:**
 
-- Each script gets behavior tests (not just the parse-only stub), covering its real success path and
-  at least one failure or edge case, without changing the machine the tests run on.
+- Each script gets behavior tests, replacing its parse-only stub where one exists (or as a new test
+  file where none does), covering its real success path and at least one failure or edge case,
+  without changing the machine the tests run on.
 - Tests follow the `Tests/Unit` and `Tests/TestHelpers.psm1` conventions.
 - The full Pester suite passes, including the new tests.
 
@@ -647,8 +649,9 @@ and gets its tests in the destination repository.
 
 **Acceptance criteria:**
 
-- Each script gets behavior tests (not just the parse-only stub), covering its real success path and
-  at least one failure or edge case, without changing the machine the tests run on.
+- Each script gets behavior tests, replacing its parse-only stub where one exists (or as a new test
+  file where none does), covering its real success path and at least one failure or edge case,
+  without changing the machine the tests run on.
 - Tests follow the `Tests/Unit` and `Tests/TestHelpers.psm1` conventions.
 - The full Pester suite passes, including the new tests.
 
@@ -673,8 +676,9 @@ and gets its tests in the destination repository.
 
 **Acceptance criteria:**
 
-- Each script gets behavior tests (not just the parse-only stub), covering its real success path and
-  at least one failure or edge case, without changing the machine the tests run on.
+- Each script gets behavior tests, replacing its parse-only stub where one exists (or as a new test
+  file where none does), covering its real success path and at least one failure or edge case,
+  without changing the machine the tests run on.
 - Tests follow the `Tests/Unit` and `Tests/TestHelpers.psm1` conventions.
 - The full Pester suite passes, including the new tests.
 
@@ -699,8 +703,9 @@ and gets its tests in the destination repository.
 
 **Acceptance criteria:**
 
-- Each script gets behavior tests (not just the parse-only stub), covering its real success path and
-  at least one failure or edge case, without changing the machine the tests run on.
+- Each script gets behavior tests, replacing its parse-only stub where one exists (or as a new test
+  file where none does), covering its real success path and at least one failure or edge case,
+  without changing the machine the tests run on.
 - Tests follow the `Tests/Unit` and `Tests/TestHelpers.psm1` conventions.
 - The full Pester suite passes, including the new tests.
 
@@ -725,8 +730,9 @@ and gets its tests in the destination repository.
 
 **Acceptance criteria:**
 
-- Each script gets behavior tests (not just the parse-only stub), covering its real success path and
-  at least one failure or edge case, without changing the machine the tests run on.
+- Each script gets behavior tests, replacing its parse-only stub where one exists (or as a new test
+  file where none does), covering its real success path and at least one failure or edge case,
+  without changing the machine the tests run on.
 - Tests follow the `Tests/Unit` and `Tests/TestHelpers.psm1` conventions.
 - The full Pester suite passes, including the new tests.
 
@@ -751,8 +757,9 @@ and gets its tests in the destination repository.
 
 **Acceptance criteria:**
 
-- Each script gets behavior tests (not just the parse-only stub), covering its real success path and
-  at least one failure or edge case, without changing the machine the tests run on.
+- Each script gets behavior tests, replacing its parse-only stub where one exists (or as a new test
+  file where none does), covering its real success path and at least one failure or edge case,
+  without changing the machine the tests run on.
 - Tests follow the `Tests/Unit` and `Tests/TestHelpers.psm1` conventions.
 - The full Pester suite passes, including the new tests.
 
@@ -777,8 +784,9 @@ and gets its tests in the destination repository.
 
 **Acceptance criteria:**
 
-- Each script gets behavior tests (not just the parse-only stub), covering its real success path and
-  at least one failure or edge case, without changing the machine the tests run on.
+- Each script gets behavior tests, replacing its parse-only stub where one exists (or as a new test
+  file where none does), covering its real success path and at least one failure or edge case,
+  without changing the machine the tests run on.
 - Tests follow the `Tests/Unit` and `Tests/TestHelpers.psm1` conventions.
 - The full Pester suite passes, including the new tests.
 
@@ -803,8 +811,9 @@ and gets its tests in the destination repository.
 
 **Acceptance criteria:**
 
-- Each script gets behavior tests (not just the parse-only stub), covering its real success path and
-  at least one failure or edge case, without changing the machine the tests run on.
+- Each script gets behavior tests, replacing its parse-only stub where one exists (or as a new test
+  file where none does), covering its real success path and at least one failure or edge case,
+  without changing the machine the tests run on.
 - Tests follow the `Tests/Unit` and `Tests/TestHelpers.psm1` conventions.
 - The full Pester suite passes, including the new tests.
 
@@ -829,8 +838,9 @@ and gets its tests in the destination repository.
 
 **Acceptance criteria:**
 
-- Each script gets behavior tests (not just the parse-only stub), covering its real success path and
-  at least one failure or edge case, without changing the machine the tests run on.
+- Each script gets behavior tests, replacing its parse-only stub where one exists (or as a new test
+  file where none does), covering its real success path and at least one failure or edge case,
+  without changing the machine the tests run on.
 - Tests follow the `Tests/Unit` and `Tests/TestHelpers.psm1` conventions.
 - The full Pester suite passes, including the new tests.
 
@@ -855,8 +865,9 @@ and gets its tests in the destination repository.
 
 **Acceptance criteria:**
 
-- Each script gets behavior tests (not just the parse-only stub), covering its real success path and
-  at least one failure or edge case, without changing the machine the tests run on.
+- Each script gets behavior tests, replacing its parse-only stub where one exists (or as a new test
+  file where none does), covering its real success path and at least one failure or edge case,
+  without changing the machine the tests run on.
 - Tests follow the `Tests/Unit` and `Tests/TestHelpers.psm1` conventions.
 - The full Pester suite passes, including the new tests.
 
@@ -881,8 +892,9 @@ and gets its tests in the destination repository.
 
 **Acceptance criteria:**
 
-- Each script gets behavior tests (not just the parse-only stub), covering its real success path and
-  at least one failure or edge case, without changing the machine the tests run on.
+- Each script gets behavior tests, replacing its parse-only stub where one exists (or as a new test
+  file where none does), covering its real success path and at least one failure or edge case,
+  without changing the machine the tests run on.
 - Tests follow the `Tests/Unit` and `Tests/TestHelpers.psm1` conventions.
 - The full Pester suite passes, including the new tests.
 
@@ -907,8 +919,9 @@ and gets its tests in the destination repository.
 
 **Acceptance criteria:**
 
-- Each script gets behavior tests (not just the parse-only stub), covering its real success path and
-  at least one failure or edge case, without changing the machine the tests run on.
+- Each script gets behavior tests, replacing its parse-only stub where one exists (or as a new test
+  file where none does), covering its real success path and at least one failure or edge case,
+  without changing the machine the tests run on.
 - Tests follow the `Tests/Unit` and `Tests/TestHelpers.psm1` conventions.
 - The full Pester suite passes, including the new tests.
 
@@ -933,8 +946,9 @@ and gets its tests in the destination repository.
 
 **Acceptance criteria:**
 
-- Each script gets behavior tests (not just the parse-only stub), covering its real success path and
-  at least one failure or edge case, without changing the machine the tests run on.
+- Each script gets behavior tests, replacing its parse-only stub where one exists (or as a new test
+  file where none does), covering its real success path and at least one failure or edge case,
+  without changing the machine the tests run on.
 - Tests follow the `Tests/Unit` and `Tests/TestHelpers.psm1` conventions.
 - The full Pester suite passes, including the new tests.
 
@@ -959,8 +973,9 @@ and gets its tests in the destination repository.
 
 **Acceptance criteria:**
 
-- Each script gets behavior tests (not just the parse-only stub), covering its real success path and
-  at least one failure or edge case, without changing the machine the tests run on.
+- Each script gets behavior tests, replacing its parse-only stub where one exists (or as a new test
+  file where none does), covering its real success path and at least one failure or edge case,
+  without changing the machine the tests run on.
 - Tests follow the `Tests/Unit` and `Tests/TestHelpers.psm1` conventions.
 - The full Pester suite passes, including the new tests.
 
@@ -985,8 +1000,9 @@ and gets its tests in the destination repository.
 
 **Acceptance criteria:**
 
-- Each script gets behavior tests (not just the parse-only stub), covering its real success path and
-  at least one failure or edge case, without changing the machine the tests run on.
+- Each script gets behavior tests, replacing its parse-only stub where one exists (or as a new test
+  file where none does), covering its real success path and at least one failure or edge case,
+  without changing the machine the tests run on.
 - Tests follow the `Tests/Unit` and `Tests/TestHelpers.psm1` conventions.
 - The full Pester suite passes, including the new tests.
 
@@ -1002,8 +1018,9 @@ and gets its tests in the destination repository.
 
 **Acceptance criteria:**
 
-- Each script gets behavior tests (not just the parse-only stub), covering its real success path and
-  at least one failure or edge case, without changing the machine the tests run on.
+- Each script gets behavior tests, replacing its parse-only stub where one exists (or as a new test
+  file where none does), covering its real success path and at least one failure or edge case,
+  without changing the machine the tests run on.
 - Tests follow the `Tests/Unit` and `Tests/TestHelpers.psm1` conventions.
 - The full Pester suite passes, including the new tests.
 
@@ -1019,11 +1036,14 @@ and gets its tests in the destination repository.
 **Scope:**
 
 - `Packages/General/CreateChromeBackupScheduledTask-Package.ps1`
+- `Tests/Unit/CreateChromeBackupScheduledTask-Package.Tests.ps1` (removed with the script, so no stub targets a missing file)
 
 **Acceptance criteria:**
 
 - Each script moves to the matching `Scripts/` area of powershell-utilities, with its move recorded
   there in `MIGRATION.md` and its path here removed.
+- Its paired test is removed here with it, so the repository hygiene check that every stub targets an
+  existing script still passes.
 - No Tanium-specific dependency is introduced; any hard-coded path is parameterized as part of the move.
 - The destination repository (powershell-utilities) supplies the moved script's comment-based help and
   behavior tests under its own standards; no help or test work for it is tracked in this repository.
