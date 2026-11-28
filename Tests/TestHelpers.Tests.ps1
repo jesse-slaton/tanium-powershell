@@ -153,3 +153,37 @@ Describe 'Get-ScriptParseResult' {
         Test-Path -LiteralPath $marker | Should -BeFalse
     }
 }
+
+Describe 'Get-PowerShellEncodingProblem' {
+    BeforeAll {
+        $script:Bom = [byte[]](0xEF, 0xBB, 0xBF)
+        # 'caf' + U+00E9 + newline, as UTF-8 bytes: non-ASCII text.
+        $script:NonAscii = [byte[]](0x63, 0x61, 0x66, 0xC3, 0xA9, 0x0A)
+        $script:Ascii = [System.Text.Encoding]::ASCII.GetBytes("Write-Output 'hi'`r`n`t`f")
+    }
+
+    It 'passes <Case>' -TestCases @(
+        @{ Case = 'pure ASCII without a BOM'; Make = { $script:Ascii } }
+        @{ Case = 'pure ASCII with a BOM'; Make = { [byte[]]($script:Bom + $script:Ascii) } }
+        @{ Case = 'non-ASCII UTF-8 with a BOM'; Make = { [byte[]]($script:Bom + $script:NonAscii) } }
+        @{ Case = 'a file that is only a BOM'; Make = { $script:Bom } }
+        @{ Case = 'an empty file'; Make = { [byte[]]@() } }
+    ) {
+        # @() then [byte[]]: an empty array returned from a scriptblock would otherwise unroll to $null.
+        $bytes = [byte[]]@(& $Make)
+        Get-PowerShellEncodingProblem -Bytes $bytes | Should -BeNullOrEmpty
+    }
+
+    It 'rejects <Case>' -TestCases @(
+        @{ Case = 'non-ASCII UTF-8 without a BOM'; Expected = 'non-ASCII UTF-8 text without a byte order mark*'; Make = { $script:NonAscii } }
+        @{ Case = 'UTF-16LE with a BOM'; Expected = 'UTF-16LE byte order mark'; Make = { [byte[]](0xFF, 0xFE, 0x41, 0x00) } }
+        @{ Case = 'UTF-16BE with a BOM'; Expected = 'UTF-16BE byte order mark'; Make = { [byte[]](0xFE, 0xFF, 0x00, 0x41) } }
+        @{ Case = 'BOM-less UTF-16LE ASCII text'; Expected = 'control character other than tab, LF, FF or CR*'; Make = { [System.Text.Encoding]::Unicode.GetBytes('param()') } }
+        @{ Case = 'BOM-less UTF-16BE ASCII text'; Expected = 'control character other than tab, LF, FF or CR*'; Make = { [System.Text.Encoding]::BigEndianUnicode.GetBytes('param()') } }
+        @{ Case = 'invalid UTF-8'; Expected = 'not valid UTF-8*'; Make = { [byte[]](0x41, 0xC3, 0x28) } }
+        @{ Case = 'a control byte in ASCII text'; Expected = 'control character other than tab, LF, FF or CR*'; Make = { [byte[]](0x41, 0x01, 0x42) } }
+    ) {
+        $bytes = [byte[]]@(& $Make)
+        Get-PowerShellEncodingProblem -Bytes $bytes | Should -BeLike $Expected
+    }
+}

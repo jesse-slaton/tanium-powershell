@@ -140,4 +140,54 @@ function Get-ScriptParseResult {
     }
 }
 
-Export-ModuleMember -Function Get-RepoRoot, Resolve-StubTarget, Get-ScriptParseResult
+function Get-PowerShellEncodingProblem {
+    <#
+    .SYNOPSIS
+        Returns why a PowerShell file's bytes break the repo's encoding rule, or nothing if they pass.
+
+    .DESCRIPTION
+        The rule (issue #34): no UTF-16, valid UTF-8 only, no control character other than tab,
+        LF, FF and CR, and a byte order mark (EF BB BF) whenever the text is not pure ASCII,
+        because Windows PowerShell 5.1 reads a BOM-less file in the system code page.
+
+        Every check runs on the decoded string with regular expressions rather than a loop over
+        the bytes: an interpreted per-byte loop over the whole repo took over 100 s on Windows
+        PowerShell 5.1 (powershell-utilities issue #126). A byte above 0x7F in valid UTF-8 always decodes to a
+        character above U+007F, so the non-ASCII check on the text matches the byte check exactly.
+
+    .PARAMETER Bytes
+        The file's raw bytes.
+
+    .EXAMPLE
+        Get-PowerShellEncodingProblem -Bytes ([System.IO.File]::ReadAllBytes($path))
+    #>
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory)]
+        [AllowEmptyCollection()]
+        [byte[]]$Bytes
+    )
+    if ($Bytes.Length -ge 2 -and $Bytes[0] -eq 0xFF -and $Bytes[1] -eq 0xFE) { return 'UTF-16LE byte order mark' }
+    if ($Bytes.Length -ge 2 -and $Bytes[0] -eq 0xFE -and $Bytes[1] -eq 0xFF) { return 'UTF-16BE byte order mark' }
+
+    # Strict decoder: throws on invalid UTF-8 instead of substituting U+FFFD. New-Object, not
+    # ::new(), so this also runs on Windows PowerShell 5.1.
+    $strictUtf8 = New-Object System.Text.UTF8Encoding -ArgumentList $false, $true
+    try { $text = $strictUtf8.GetString($Bytes) }
+    catch [System.Text.DecoderFallbackException] { return 'not valid UTF-8 (UTF-16 without a byte order mark?)' }
+
+    # A byte below 0x20 is never part of a multi-byte UTF-8 sequence, so matching the decoded
+    # text finds every such byte. NUL is the usual sign of BOM-less UTF-16.
+    if ($text -match '[\x00-\x08\x0B\x0E-\x1F]') {
+        return 'control character other than tab, LF, FF or CR (UTF-16 without a byte order mark?)'
+    }
+
+    # GetString keeps a leading BOM as U+FEFF; it is the marker, not content.
+    $hasBom = $Bytes.Length -ge 3 -and $Bytes[0] -eq 0xEF -and $Bytes[1] -eq 0xBB -and $Bytes[2] -eq 0xBF
+    $body = if ($hasBom) { $text.Substring(1) } else { $text }
+    if (-not $hasBom -and $body -match '[^\x00-\x7F]') {
+        return 'non-ASCII UTF-8 text without a byte order mark (Windows PowerShell 5.1 misreads it)'
+    }
+}
+
+Export-ModuleMember -Function Get-RepoRoot, Resolve-StubTarget, Get-ScriptParseResult, Get-PowerShellEncodingProblem
