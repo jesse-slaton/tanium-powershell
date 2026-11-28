@@ -36,43 +36,45 @@ regexes = ['''^NPPR9-FWDCX-D2C8J-H872K-2YT43$''']
 [[rules]]
 id = "connection-string-password"
 description = "Password in a database connection string, after the server or user key"
-regex = '''(?i)(?:user\s*id|uid|server|data\s*source|initial\s*catalog|database)\s*=[^;\r\n]*;[^\r\n]*?\b(?:password|pwd)\s*=\s*(?:'([^'\s+][^'\r\n]{2,})'|"([^"\s+][^"\r\n]{2,})"|([^;'"\s]{3,}))'''
+regex = '''(?i)(?:user\s*id|uid|server|data\s*source|initial\s*catalog|database)\s*=[^;\r\n]*;[^\r\n]*?\b(?:password|pwd)\s*=\s*(?:'((?:[^'\s+]|\+[^'\s$])[^'\r\n]{2,})'|"([^"\s+][^"\r\n]{2,})"|([^;'"\s]{3,}))'''
 [rules.allowlist]
 # The value may be 'quoted', "quoted" or bare. No secretGroup: gitleaks reports the first capture
-# group that matched. A quoted capture may not start with a space or +, so concatenation such as
-# "...;Password=" + $pw + ";" is not a value.
+# group that matched. A quoted capture may not start with a space, so concatenation such as
+# "...;Password=" + $pw + ";" is not a value; it may not start with + either, except in single
+# quotes when the + is not followed by a $ ('+hunter2' is a value, '+$pw+' is concatenation).
 # Format placeholders and PowerShell expressions such as $($cred.GetNetworkCredential().Password).
 regexes = ['''(?i)^(?:\{\d+\}|\$[\w:{}().$]+|REDACTED\w*|<[^>]+>|\*+|x{3,})$''']
 
 [[rules]]
 id = "connection-string-password-first"
 description = "Password in a database connection string, before the server or user key"
-regex = '''(?i)\b(?:password|pwd)\s*=\s*(?:'([^'\s+][^'\r\n]{2,})'|"([^"\s+][^"\r\n]{2,})"|([^;'"\s]{3,}))\s*;[^\r\n]*?\b(?:user\s*id|uid|server|data\s*source|initial\s*catalog|database)\s*='''
+regex = '''(?i)\b(?:password|pwd)\s*=\s*(?:'((?:[^'\s+]|\+[^'\s$])[^'\r\n]{2,})'|"([^"\s+][^"\r\n]{2,})"|([^;'"\s]{3,}))\s*;[^\r\n]*?\b(?:user\s*id|uid|server|data\s*source|initial\s*catalog|database)\s*='''
 [rules.allowlist]
 regexes = ['''(?i)^(?:\{\d+\}|\$[\w:{}().$]+|REDACTED\w*|<[^>]+>|\*+|x{3,})$''']
 
 # The PowerShell literal rules below: in 'single quotes' a $ is literal text, so the value may
 # contain one, and even a value shaped like '$name' is reported (it is a literal string, not a
-# variable). A "double-quoted" value with a $ is expanded at run time, so it is not reported.
+# variable). A "double-quoted" value with an unescaped $ is expanded at run time, so it is not
+# reported; a backtick-escaped dollar (`$) is a literal character and is still reported.
 # A single-quoted capture keeps its quotes ('...'): gitleaks' built-in global allowlist exempts
 # any secret shaped like a bare $name template variable, which would hide '$name' literals.
 # The placeholder allowlists below accept those quotes.
 [[rules]]
 id = "powershell-plaintext-securestring"
 description = "Literal string converted with ConvertTo-SecureString -AsPlainText"
-regex = '''(?i)ConvertTo-SecureString\s+(?:-String\s+)?(?:('[^'\r\n]{4,}')|"([^"$\r\n]{4,})")[^\r\n]*-AsPlainText'''
+regex = '''(?i)ConvertTo-SecureString\s+(?:-String\s+)?(?:('[^'\r\n]{4,}')|"((?:`\$|[^"$\r\n]){4,})")[^\r\n]*-AsPlainText'''
 
 [[rules]]
 id = "powershell-plaintext-securestring-after"
 description = "Literal string after -AsPlainText in a ConvertTo-SecureString call"
-regex = '''(?i)ConvertTo-SecureString(?:\s+-\w+)*\s+-AsPlainText(?:\s+-\w+)*\s+(?:('[^'\r\n]{4,}')|"([^"$\r\n]{4,})")'''
+regex = '''(?i)ConvertTo-SecureString(?:\s+-\w+)*\s+-AsPlainText(?:\s+-\w+)*\s+(?:('[^'\r\n]{4,}')|"((?:`\$|[^"$\r\n]){4,})")'''
 
 [[rules]]
 id = "powershell-plaintext-securestring-piped"
 description = "Literal string piped to ConvertTo-SecureString -AsPlainText"
 # The literal must start an expression (line start, =, (, { or ;), so Get-Content 'C:\pw.txt' | ...
 # is not reported.
-regex = '''(?im)(?:^|[=({;])\s*(?:('[^'\r\n]{4,}')|"([^"$\r\n]{4,})")\s*\|\s*ConvertTo-SecureString\b[^\r\n]*-AsPlainText'''
+regex = '''(?im)(?:^|[=({;])\s*(?:('[^'\r\n]{4,}')|"((?:`\$|[^"$\r\n]){4,})")\s*\|\s*ConvertTo-SecureString\b[^\r\n]*-AsPlainText'''
 
 [[rules]]
 id = "powershell-password-literal-arg"
@@ -80,7 +82,7 @@ description = "Literal value passed to a -Password style parameter"
 # The value may follow a space or a colon (-Password:'x'), and may be quoted or bare
 # (-Password P@ssw0rd). A bare value starting with $, (, @ or { is a variable or expression, so it
 # is not reported. A value containing < is still reported; only a whole <placeholder> is exempt.
-regex = '''(?i)\s-(?:Password|Passwd|Pwd|Pass|Secret|ApiKey|Token)(?:\s+|:\s*)(?:('[^'\r\n]{4,}')|"([^"$\r\n]{4,})"|([^\s'"$(@{`|;,)#][^\s'"`|;,)#]{3,}))'''
+regex = '''(?i)\s-(?:Password|Passwd|Pwd|Pass|Secret|ApiKey|Token)(?:\s+|:\s*)(?:('[^'\r\n]{4,}')|"((?:`\$|[^"$\r\n]){4,})"|([^\s'"$(@{`|;,)#][^\s'"`|;,)#]{3,}))'''
 [[rules.allowlists]]
 # Only a whole placeholder word is exempt (your-password-here, changeme, ***), never a value that
 # merely starts with my, test or sample. Test files get no path exemption: a test that needs a
@@ -90,7 +92,7 @@ regexes = ['''(?i)^'?(?:(?:your|my|test|fake|dummy|example|sample|placeholder)[-
 [[rules]]
 id = "password-assignment-literal"
 description = "Variable or hashtable key named like a password assigned a literal string"
-regex = '''(?im)(?:\$(?:\w+:)?(?:\w*(?:password|passwd|secret|apikey|token)\w*|\w*pw|\w+pwd|\w*pass)|(?:^|[;{(,\s])['"]?(?:password|passwd|pwd)['"]?)\s*=\s*(?:('[^'\r\n]{4,}')|"([^"$\r\n]{4,})")'''
+regex = '''(?im)(?:\$(?:\w+:)?(?:\w*(?:password|passwd|secret|apikey|token)\w*|\w*pw|\w+pwd|\w*pass)|(?:^|[;{(,\s])['"]?(?:password|passwd|pwd)['"]?)\s*=\s*(?:('[^'\r\n]{4,}')|"((?:`\$|[^"$\r\n]){4,})")'''
 [[rules.allowlists]]
 # Names that hold metadata about a credential, not the credential: $tokenType, $secretName,
 # $passwordFile, $TokenEndpoint, $passwordPolicy and similar. $env:GIT_ASKPASS and SSH_ASKPASS name a
