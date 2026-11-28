@@ -1,3 +1,5 @@
+#Requires -Version 5.1
+
 <#
 .SYNOPSIS
     Lists Office add-ins registered in the registry, one pipe-delimited line each.
@@ -54,30 +56,41 @@ Try {
 }
 Catch {
     Write-Error $_.Exception.Message -ErrorAction Stop
-    [Environment]::Exit($_.Exception.HResult)   
+    [Environment]::Exit($_.Exception.HResult)
 }
 
-$searchScopes = @(
-    "$HKCUBasePath\*\Addins"
-    , "$HKLMBasePath\*\Addins"
-    , "$HKLM32BasePath\*\Addins"
-)
+$ArrayofOfficeAddins = @($HKCUBasePath, $HKLMBasePath, $HKLM32BasePath) | ForEach-Object {
+    $basePath = $_
+    try {
+        $products = Get-ChildItem -LiteralPath $basePath -ErrorAction Stop
+    }
+    catch {
+        # A hive that is not present on this machine is normal, not an error.
+        $products = $null
+    }
+    foreach ($product in $products) {
+        $addinsPath = Join-Path -Path $product.PSPath -ChildPath 'Addins'
+        # A product key without an Addins key is normal; read only the ones that exist.
+        Get-ChildItem -LiteralPath $addinsPath -Recurse -ErrorAction SilentlyContinue
+    }
+} | ForEach-Object {
+    Get-ItemProperty -Path $_.PSPath
+} | Select-Object @{n = 'Hive'; e = { if ($_.PSParentPath -match '_USER') { 'User' } else { 'Machine' } } },
+    @{n = 'Product'; e = { $Segments = (Convert-Path $_.PSParentPath) -split '\\'; $Segments[[array]::IndexOf($Segments, 'Addins') - 1] } },
+    @{n = 'Architecture'; e = { if ($_.PSPath -match 'Wow6432Node') { '32-bit' } elseif ($_.PSPath -match '_USER') { 'Unknown' } else { '64-bit' } } },
+    @{n = 'Name'; e = { Split-Path $_.PSPath -Leaf } },
+    FriendlyName,
+    @{n = 'LoadBehavior'; e = { $LoadBehaviorHashTable.($_.LoadBehavior) } } |
+    Sort-Object -Unique -Property name
 
-$ArrayofOfficeAddins = $searchScopes | `
-        ForEach-Object { Get-ChildItem -Path $_ -ErrorAction SilentlyContinue -Recurse | `
-                ForEach-Object { Get-ItemProperty -Path $_.PSPath } | `
-                    Select-Object @{n = "Hive"; e = { if ($_.PSParentPath -match '_USER') {'User'} else {'Machine'} } }`
-                    , @{n = "Product"; e = { $Segments = (Convert-Path $_.PSParentPath) -split '\\'; $Segments[[array]::IndexOf($Segments, 'Addins') - 1] } }`
-                    , @{n = "Architecture"; e = { if ($_.PSPath -match 'Wow6432Node') { '32-bit' } elseif ($_.PSPath -match '_USER') { 'Unknown' } else { '64-bit' } } }`
-                    , @{n = "Name"; e = { Split-Path $_.PSPath -Leaf } } `
-                    , FriendlyName `
-                    , @{n = "LoadBehavior"; e = { $LoadBehaviorHashTable.($_.LoadBehavior) } } `
-            } | `
-                    Sort-Object -Unique -Property name
-Try {
-    $CSV = ($ArrayofOfficeAddins | Where-Object { $null -ne $_.LoadBehavior } | ConvertTo-Csv -Delimiter "|" -NoTypeInformation).Replace("`"", "")
-    $CSV[1..($CSV.Length)] | Sort-Object 
+try {
+    $ArrayofOfficeAddins |
+        Where-Object { $null -ne $_.LoadBehavior } |
+        ConvertTo-Csv -Delimiter '|' -NoTypeInformation |
+        Select-Object -Skip 1 |
+        ForEach-Object { $_.Replace('"', '') } |
+        Sort-Object
 }
-Catch {
+catch {
     Write-Output "Error: $($_.Exception.Message)"
 }

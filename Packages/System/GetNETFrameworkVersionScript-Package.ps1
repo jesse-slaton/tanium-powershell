@@ -1,3 +1,5 @@
+#Requires -Version 5.1
+
 <#
 .SYNOPSIS
     Generates the source of a script that lists installed .NET Framework versions with their product names.
@@ -30,14 +32,20 @@
 
 .NOTES
     Requires network access to raw.githubusercontent.com. The parsing depends on the
-    article's path on the master branch and on its table layout; if either has
-    changed the lookup will be empty or wrong. No admin rights needed. Works in
-    Windows PowerShell 5.1 and PowerShell 7.
+    article's path on the master branch and on its table layout. A failed download or
+    an empty lookup writes an error and exits non-zero rather than emitting an empty
+    script. No admin rights needed. Works in Windows PowerShell 5.1 and PowerShell 7.
     Imported from jesse-slaton/powershell-utilities at 00676387f42413dc85c8b373791a0364358f6820, from Scripts/Network/GetNETFrameworkVersionScript-Package.ps1.
 #>
 # Get the text from github
 $url = "https://raw.githubusercontent.com/dotnet/docs/master/docs/framework/install/how-to-determine-which-versions-are-installed.md"
-$md = Invoke-WebRequest $url -UseBasicParsing
+try {
+    $md = Invoke-WebRequest -Uri $url -UseBasicParsing -ErrorAction Stop
+}
+catch {
+    # A failed download must not silently produce an empty script.
+    throw "Failed to download the .NET Framework version table from $url : $($_.Exception.Message)"
+}
 $OFS = "`n"
 # Replace the weird text in the tables, and the padding
 # Then trim the | off the front and end of lines
@@ -49,6 +57,11 @@ Select-String "^.NET" | Select-Object -Unique |
 ForEach-Object { 
     [version]$v, [int]$k = $_ -replace "\.NET Framework " -split "\|"
     "    $k = [version]'$v'"
+}
+
+if (-not $map) {
+    # An empty lookup means the page changed or returned nothing; do not emit a plausible empty script.
+    throw "The .NET Framework version table could not be parsed from $url; the page may have changed."
 }
 
 # And output the whole script

@@ -1,3 +1,5 @@
+#Requires -Version 5.1
+
 <#
 .SYNOPSIS
     Reports the Windows Time NTP server, poll interval and service status as one pipe-delimited line.
@@ -6,8 +8,8 @@
     Reads NtpServer from HKLM:\SYSTEM\CurrentControlSet\Services\W32Time\Parameters and
     SpecialPollInterval from
     HKLM:\SYSTEM\CurrentControlSet\Services\W32Time\TimeProviders\NtpClient, and the
-    status of the w32time service. The inline comments describe setting these values,
-    but this script only reads them.
+    status of the w32time service. Read-only: this script does not change any of these
+    values.
 
     The internal ConvertToFriendlyTime function turns the poll interval (seconds) into
     a rounded string such as "15 minutes", "1 hour" or "7 days".
@@ -26,7 +28,8 @@
 
 .NOTES
     No admin rights needed. If NtpServer or SpecialPollInterval is missing, the script
-    writes errors. Works in Windows PowerShell 5.1 and PowerShell 7.
+    emits the row with an empty value for that column. Works in Windows PowerShell 5.1
+    and PowerShell 7.
     Imported from jesse-slaton/powershell-utilities at 00676387f42413dc85c8b373791a0364358f6820, from Scripts/Network/GetWindowsTimeSettings-Package.ps1.
 #>
 
@@ -61,11 +64,18 @@ function ConvertToFriendlyTime {
     return $OutputString
 }
 
-# Set the time server to time.windows.com
-$NTPServer = (Get-ItemProperty -Path HKLM:\SYSTEM\CurrentControlSet\Services\W32Time\Parameters -Name NtpServer).NtpServer
+# Read the configured time server. This script only reads these values; it does not set or configure them.
+$NtpServerValue = (Get-ItemProperty -Path HKLM:\SYSTEM\CurrentControlSet\Services\W32Time\Parameters -Name NtpServer).NtpServer
 
-# Configure the time service to start automatically and sync every 15 minutes
-$Interval = ConvertToFriendlyTime -Seconds $(Get-ItemProperty -Path HKLM:\SYSTEM\CurrentControlSet\Services\W32Time\TimeProviders\NtpClient -Name SpecialPollInterval).SpecialPollInterval 
+# Read the configured poll interval (seconds) and convert it to a friendly string.
+$Interval = ConvertToFriendlyTime -Seconds $(Get-ItemProperty -Path HKLM:\SYSTEM\CurrentControlSet\Services\W32Time\TimeProviders\NtpClient -Name SpecialPollInterval).SpecialPollInterval
 $ServiceStatus = (Get-Service -Name w32time).Status
 
-Write-Output "$($NTPServer.Split(',')[0])|$($NTPServer.Split(',')[1])|$($Interval)|$($ServiceStatus)"
+# The NtpServer value can list several peers separated by spaces, each "host,flags". Split on
+# whitespace first and take only the first peer, so the Flags column holds just that peer's
+# flags instead of the next peer's host. A missing value yields empty columns, not an error.
+$FirstPeer = if ($NtpServerValue) { ($NtpServerValue -split '\s+')[0] } else { '' }
+$NtpServer = if ($FirstPeer -match ',') { $FirstPeer.Split(',')[0] } else { $FirstPeer }
+$Flags = if ($FirstPeer -match ',') { $FirstPeer.Split(',')[1] } else { '' }
+
+Write-Output "$NtpServer|$Flags|$Interval|$ServiceStatus"

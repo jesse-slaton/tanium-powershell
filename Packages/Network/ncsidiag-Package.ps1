@@ -1,4 +1,4 @@
-#Requires -Version 3.0
+#Requires -Version 5.1
 
 <#
 .SYNOPSIS
@@ -9,13 +9,15 @@
     HKLM:\SYSTEM\CurrentControlSet\Services\NlaSvc\Parameters\Internet and:
 
     - resolves ActiveWebProbeHost and ActiveDnsProbeHost as DNS A records
-      (Resolve-DnsName -DnsOnly)
-    - requests http://<ActiveWebProbeHost>/<ActiveWebProbePath> and compares the
-      content with ActiveWebProbeContent. The result is True on a match and False if
-      the request throws; on a mismatch without an error it stays empty.
+      (Resolve-DnsName -DnsOnly); a failed lookup is reported as an empty column
+    - requests http://<ActiveWebProbeHost>/<ActiveWebProbePath> with a five-second
+      timeout and compares the content with ActiveWebProbeContent. The result is True
+      on a match and False when the request throws or the content differs (for example
+      a captive portal)
     - reads the IP-enabled adapters from Win32_NetworkAdapterConfiguration and computes
       the network address of each IPv4 adapter's first address, then keeps the adapter
-      with the lowest GatewayCostMetric. Adapters with no IPv4 address are skipped.
+      with the lowest GatewayCostMetric. Adapters with no IPv4 address or no default
+      gateway are skipped.
 
     Writes one line:
 
@@ -32,21 +34,36 @@
     Needs network access to the NCSI probe hosts (plain HTTP). Requires the DnsClient
     module (Resolve-DnsName, Windows 8 / Server 2012 or later). Uses the CIM cmdlets;
     runs on Windows PowerShell 5.1 and PowerShell 7. Invoke-WebRequest is called with
-    -UseBasicParsing. No admin rights needed.
+    -UseBasicParsing and a five-second timeout. No admin rights needed.
     Imported from jesse-slaton/powershell-utilities at 00676387f42413dc85c8b373791a0364358f6820, from Scripts/General/ncsidiag-Package.ps1.
 #>
 $NCSIProbeHost = (Get-ItemProperty HKLM:\SYSTEM\CurrentControlSet\Services\NlaSvc\Parameters\Internet).ActiveWebProbeHost
 $NCSIDNSAddress = (Get-ItemProperty HKLM:\SYSTEM\CurrentControlSet\Services\NlaSvc\Parameters\Internet).ActiveDnsProbeHost
-$ResolvedNCSIProbeHost = Resolve-DnsName -Name $NCSIProbeHost -DnsOnly -Type A
-$ResolvedNCSIProbeHostname = @($ResolvedNCSIProbeHost)[0].Name
-$NCSIIPAddresses = $ResolvedNCSIProbeHost.ipaddress -join "|"
-
-$ResolvedDNSHost = Resolve-DnsName -Name $NCSIDNSAddress -DnsOnly -Type A
-$ResolvedDNSHostname = $ResolvedDNSHost.Name
-$ResolvedDNSIPAddress = $ResolvedDNSHost.ipaddress
 
 try {
-    if ( (Invoke-Webrequest -UseBasicParsing ("http://{0}/{1}" -f (Get-ItemProperty HKLM:\SYSTEM\CurrentControlSet\Services\NlaSvc\Parameters\Internet).ActiveWebProbeHost,
+    $ResolvedNCSIProbeHost = Resolve-DnsName -Name $NCSIProbeHost -DnsOnly -Type A -ErrorAction Stop
+    $ResolvedNCSIProbeHostname = @($ResolvedNCSIProbeHost)[0].Name
+    $NCSIIPAddresses = $ResolvedNCSIProbeHost.ipaddress -join "|"
+}
+catch {
+    # A failed DNS lookup still yields defined (empty) columns, not a crash or a blank row.
+    $ResolvedNCSIProbeHostname = ''
+    $NCSIIPAddresses = ''
+}
+
+try {
+    $ResolvedDNSHost = Resolve-DnsName -Name $NCSIDNSAddress -DnsOnly -Type A -ErrorAction Stop
+    $ResolvedDNSHostname = $ResolvedDNSHost.Name
+    $ResolvedDNSIPAddress = $ResolvedDNSHost.ipaddress
+}
+catch {
+    # A failed DNS lookup still yields defined (empty) columns, not a crash or a blank row.
+    $ResolvedDNSHostname = ''
+    $ResolvedDNSIPAddress = ''
+}
+
+try {
+    if ( (Invoke-WebRequest -UseBasicParsing -TimeoutSec 5 -Uri ("http://{0}/{1}" -f (Get-ItemProperty HKLM:\SYSTEM\CurrentControlSet\Services\NlaSvc\Parameters\Internet).ActiveWebProbeHost,
                 (Get-ItemProperty HKLM:\SYSTEM\CurrentControlSet\Services\NlaSvc\Parameters\Internet).ActiveWebProbePath)
         ).Content -eq (Get-ItemProperty HKLM:\SYSTEM\CurrentControlSet\Services\NlaSvc\Parameters\Internet).ActiveWebProbeContent ) { 
 
@@ -56,6 +73,11 @@ try {
         
         $ProbeResults = $true 
 
+    }
+    else {
+        # A content mismatch (for example a captive portal) is a defined False, not empty.
+        Write-Verbose 'IP4 web probe content did not match.'
+        $ProbeResults = $false
     }
 }
 catch {
@@ -67,11 +89,11 @@ catch {
 }
 
 $Networks = @()
-Try {
-    $Networks = Get-CimInstance -ClassName Win32_NetworkAdapterConfiguration `
-        -ErrorAction Stop | Where-Object { $_.IPEnabled }
+try {
+    $Networks = Get-CimInstance -ClassName Win32_NetworkAdapterConfiguration -ErrorAction Stop |
+        Where-Object { $_.IPEnabled }
 }
-Catch {
+catch {
     Write-Warning "Error occurred while querying."
 }
 $OutputObj = @()
@@ -89,13 +111,18 @@ foreach ($Network in $Networks) {
     }
     [ipaddress] $SubnetMask = $IPv4Subnet
     [ipaddress] $NetAddr = ($IPAddress.Address -band $SubnetMask.Address)
-    $RouteCostMetric = $Network.GatewayCostMetric
-    $Obj = New-Object -Type PSObject
-    $Obj | Add-Member -MemberType NoteProperty -Name IPAddress -Value $IPAddress
-    $Obj | Add-Member -MemberType NoteProperty -Name SubnetMask -Value $SubnetMask
-    $Obj | Add-Member -MemberType NoteProperty -Name Network -Value $NetAddr
-    $Obj | Add-Member -MemberType NoteProperty -Name RouteCostMetric -Value $RouteCostMetric
-    $OutputObj += $Obj
+    $GatewayMetric = @($Network.GatewayCostMetric)[0]
+    if ($null -eq $GatewayMetric) {
+        # No default gateway on this adapter: it cannot be the primary route.
+        continue
+    }
+    $RouteCostMetric = [int]$GatewayMetric
+    $OutputObj += [pscustomobject]@{
+        IPAddress       = $IPAddress
+        SubnetMask      = $SubnetMask
+        Network         = $NetAddr
+        RouteCostMetric = $RouteCostMetric
+    }
 }
 $PrimaryIP = $OutputObj | Sort-Object -Property RouteCostMetric | Select-Object -First 1
 

@@ -1,125 +1,143 @@
+#Requires -Version 5.1
+
 <#
-	.SYNOPSIS
-		Tests for an internet connection.
+.SYNOPSIS
+    Tests for an internet connection.
 
-	.DESCRIPTION
-		Tests for an internet conenciton with the same method 
-        used by windwos for the Network Connection Status Icon.
-        If an internet connection is detected $true is returned,
-        otherwise $false.
+.DESCRIPTION
+    Tests for an internet connection using the same method Windows uses for the
+    Network Connection Status icon. If an internet connection is detected, $true is
+    returned; otherwise $false is returned. The web probes are bounded to a two-second
+    timeout and the DNS probes use -DnsOnly, so when offline the function returns $false
+    after the bounded probes complete instead of waiting on an unbounded DNS lookup.
 
-	.EXAMPLE
-        Test internet connection
+.EXAMPLE
+    Test internet connection
 
-		PS C:\> Test-InternetConnection
+    PS C:\> Test-InternetConnection
 
-	.EXAMPLE
-        Show results of testing internet connection
+.EXAMPLE
+    Show results of testing internet connection
 
-		PS C:\> Test-InternetConnection -Verbose
+    PS C:\> Test-InternetConnection -Verbose
 
-	.EXAMPLE
-        Internet connection required for a script
+.EXAMPLE
+    Internet connection required for a script
 
-		PS C:\> if(Test-InternetConnection) { ... }
+    PS C:\> if(Test-InternetConnection) { ... }
 
-	.INPUTS
+.INPUTS
 
-	.OUTPUTS
-		System.Boolean
+.OUTPUTS
+    System.Boolean
 
-	.NOTES
-        See https://technet.microsoft.com/en-us/library/ee126135(v=ws.10).aspx and
-            http://blogs.technet.com/b/networking/archive/2012/12/20/the-network-connection-status-icon.aspx and
-            HKLM:\SYSTEM\CurrentControlSet\Services\NlaSvc\Parameters\Internet
-        for the description of the mechanism.
-        VERSION 1.0.0, 7.2.2016
-        Imported from jesse-slaton/powershell-utilities at 00676387f42413dc85c8b373791a0364358f6820, from Scripts/General/Test-InternetConnection-Sensor.ps1.
+.NOTES
+    See https://technet.microsoft.com/en-us/library/ee126135(v=ws.10).aspx and
+        http://blogs.technet.com/b/networking/archive/2012/12/20/the-network-connection-status-icon.aspx and
+        HKLM:\SYSTEM\CurrentControlSet\Services\NlaSvc\Parameters\Internet
+    for the description of the mechanism.
+    When offline, the worst case is two web requests bounded to two seconds each plus
+    two -DnsOnly DNS lookups; the function returns $false after those bounded probes
+    instead of waiting on an unbounded DNS lookup.
+    VERSION 1.0.0, 7.2.2016
+    Imported from jesse-slaton/powershell-utilities at 00676387f42413dc85c8b373791a0364358f6820, from Scripts/General/Test-InternetConnection-Sensor.ps1.
 
-	.LINK
-		about_functions_advanced
+.LINK
+    about_functions_advanced
 
-	.LINK
-		about_comment_based_help
+.LINK
+    about_comment_based_help
 
 #>
+
+
 function Test-InternetConnection {
     [cmdletbinding()]
     Param()
 
-    # Web request test with IP4 
+    # Web request test with IP4
 
     try {
-        if( (Invoke-Webrequest -UseBasicParsing -TimeoutSec 2 -Uri ("http://{0}/{1}" -f (Get-ItemProperty HKLM:\SYSTEM\CurrentControlSet\Services\NlaSvc\Parameters\Internet).ActiveWebProbeHost,
-                                                    (Get-ItemProperty HKLM:\SYSTEM\CurrentControlSet\Services\NlaSvc\Parameters\Internet).ActiveWebProbePath)
-            ).Content -eq (Get-ItemProperty HKLM:\SYSTEM\CurrentControlSet\Services\NlaSvc\Parameters\Internet).ActiveWebProbeContent ) { 
+        if ( (Invoke-WebRequest -UseBasicParsing -TimeoutSec 2 -Uri ("http://{0}/{1}" -f (Get-ItemProperty HKLM:\SYSTEM\CurrentControlSet\Services\NlaSvc\Parameters\Internet).ActiveWebProbeHost,
+                    (Get-ItemProperty HKLM:\SYSTEM\CurrentControlSet\Services\NlaSvc\Parameters\Internet).ActiveWebProbePath)
+            ).Content -eq (Get-ItemProperty HKLM:\SYSTEM\CurrentControlSet\Services\NlaSvc\Parameters\Internet).ActiveWebProbeContent ) {
 
             # IP4 web request was successful
-            
+
             Write-Verbose 'IP4 web probe succeeded.'
-            
-            return $true 
+
+            return $true
 
         }
-    } catch { # Ignore errors
+    }
+    catch {
+        # Ignore errors; a failure is reported as a failed probe, not thrown.
 
         Write-Verbose 'IP4 web probe failed.'
-    
     }
-    
-    # Web request test with IP6 
+
+    # Web request test with IP6
 
     try {
-        if( (Invoke-Webrequest -UseBasicParsing -TimeoutSec 2 -Uri ("http://{0}/{1}" -f (Get-ItemProperty HKLM:\SYSTEM\CurrentControlSet\Services\NlaSvc\Parameters\Internet).ActiveWebProbeHostV6,
-                                                    (Get-ItemProperty HKLM:\SYSTEM\CurrentControlSet\Services\NlaSvc\Parameters\Internet).ActiveWebProbePathV6)
-            ).Content -eq (Get-ItemProperty HKLM:\SYSTEM\CurrentControlSet\Services\NlaSvc\Parameters\Internet).ActiveWebProbeContentV6 ) { 
+        if ( (Invoke-WebRequest -UseBasicParsing -TimeoutSec 2 -Uri ("http://{0}/{1}" -f (Get-ItemProperty HKLM:\SYSTEM\CurrentControlSet\Services\NlaSvc\Parameters\Internet).ActiveWebProbeHostV6,
+                    (Get-ItemProperty HKLM:\SYSTEM\CurrentControlSet\Services\NlaSvc\Parameters\Internet).ActiveWebProbePathV6)
+            ).Content -eq (Get-ItemProperty HKLM:\SYSTEM\CurrentControlSet\Services\NlaSvc\Parameters\Internet).ActiveWebProbeContentV6 ) {
 
-            # IP6 Web request was successfull
+            # IP6 web request was successful
 
             Write-Verbose 'IP6 web probe succeeded.'
-            
-            return $true 
+
+            return $true
 
         }
-    } catch { # Ignore errors
-    
-        Write-Verbose 'IP6 web probe failed.'
-    
     }
-    
+    catch {
+        # Ignore errors; a failure is reported as a failed probe, not thrown.
+
+        Write-Verbose 'IP6 web probe failed.'
+    }
+
     # DNS resolution test with IP4
 
-    if( (Resolve-DnsName -Type A -ErrorAction SilentlyContinue (Get-ItemProperty HKLM:\SYSTEM\CurrentControlSet\Services\NlaSvc\Parameters\Internet).ActiveDnsProbeHost).IPAddress -eq 
-        (Get-ItemProperty HKLM:\SYSTEM\CurrentControlSet\Services\NlaSvc\Parameters\Internet).ActiveDnsProbeContent ) {
+    try {
+        $dnsAnswer = Resolve-DnsName -Name (Get-ItemProperty HKLM:\SYSTEM\CurrentControlSet\Services\NlaSvc\Parameters\Internet).ActiveDnsProbeHost -DnsOnly -Type A -ErrorAction Stop
+        if ($dnsAnswer.IPAddress -eq (Get-ItemProperty HKLM:\SYSTEM\CurrentControlSet\Services\NlaSvc\Parameters\Internet).ActiveDnsProbeContent) {
 
-        # IP4 name resolution was successfull
+            # IP4 name resolution was successful
 
-        Write-Verbose 'IP4 name resolution succeeded.'
+            Write-Verbose 'IP4 name resolution succeeded.'
 
-        return $true
+            return $true
 
+        }
+        Write-Verbose 'IP4 name resolution failed.'
     }
+    catch {
+        # A DNS failure is a defined failed probe, not an unbounded wait or an error.
 
-    # IP4 DNS resolution failed
-
-    Write-Verbose 'IP4 name resolution failed.'
+        Write-Verbose 'IP4 name resolution failed.'
+    }
 
     # DNS resolution test with IP6
 
-    if( (Resolve-DnsName -Type AAAA -ErrorAction SilentlyContinue (Get-ItemProperty HKLM:\SYSTEM\CurrentControlSet\Services\NlaSvc\Parameters\Internet).ActiveDnsProbeHostV6).IPAddress -eq 
-        (Get-ItemProperty HKLM:\SYSTEM\CurrentControlSet\Services\NlaSvc\Parameters\Internet).ActiveDnsProbeContentV6 ) {
+    try {
+        $dnsAnswer = Resolve-DnsName -Name (Get-ItemProperty HKLM:\SYSTEM\CurrentControlSet\Services\NlaSvc\Parameters\Internet).ActiveDnsProbeHostV6 -DnsOnly -Type AAAA -ErrorAction Stop
+        if ($dnsAnswer.IPAddress -eq (Get-ItemProperty HKLM:\SYSTEM\CurrentControlSet\Services\NlaSvc\Parameters\Internet).ActiveDnsProbeContentV6) {
 
-        # IP6 name resolution was successfull
+            # IP6 name resolution was successful
 
-        Write-Verbose 'IP6 name resolution succeeded.'
-            
-        return $true
+            Write-Verbose 'IP6 name resolution succeeded.'
 
+            return $true
+
+        }
+        Write-Verbose 'IP6 name resolution failed.'
     }
+    catch {
+        # A DNS failure is a defined failed probe, not an unbounded wait or an error.
 
-    # IP4 DNS resolution failed
-
-    Write-Verbose 'IP6 name resolution failed.'
+        Write-Verbose 'IP6 name resolution failed.'
+    }
 
     # Everything failed, thus there is no internet connection
     return $false

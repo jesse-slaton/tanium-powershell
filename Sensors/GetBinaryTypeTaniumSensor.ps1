@@ -1,3 +1,5 @@
+#Requires -Version 5.1
+
 <#
 .SYNOPSIS
     Tanium sensor that reports whether each listed file is a 32-bit or 64-bit PE image.
@@ -14,7 +16,10 @@
 
     ROM images and unknown magic numbers produce a "ROM File, not supported!" or
     "Unknown PE file type" message instead. A path that does not exist is reported as
-    "<Path>|File not found!". Read-only.
+    "<Path>|File not found!". A path that exists but cannot be opened (access denied or
+    locked by another process) is reported as "<Path>|Unreadable: <reason>". When the
+    script runs in a 32-bit process, a requested \System32\ path is redirected to
+    \Sysnative\ so the 64-bit file is read. Read-only.
 
 .EXAMPLE
     .\GetBinaryTypeTaniumSensor.ps1
@@ -29,7 +34,7 @@
 
 .NOTES
     Written as a Tanium sensor: the Tanium Client must substitute the ||strFiles||
-    parameter. Requires PowerShell 5.0 or later (uses enum definitions). Needs read
+    parameter. Requires PowerShell 5.1 or later (uses enum definitions). Needs read
     access to the files; no admin rights needed otherwise.
     Imported from jesse-slaton/powershell-utilities at 00676387f42413dc85c8b373791a0364358f6820, from Scripts/General/GetBinaryTypeTaniumSensor.ps1.
 #>
@@ -429,7 +434,7 @@ function Get-PEInfo {
     $FileStream = $null
     $BinaryReader = $null
     try {
-        $FileStream = [System.IO.File]::Open($filename, [System.IO.FileMode]::Open, [System.IO.FileAccess]::Read, [System.IO.FileShare]::Read)
+        $FileStream = [System.IO.File]::Open($filename, [System.IO.FileMode]::Open, [System.IO.FileAccess]::Read, ([System.IO.FileShare]::ReadWrite -bor [System.IO.FileShare]::Delete))
         $BinaryReader = New-Object System.IO.BinaryReader($FileStream)
 
         # A valid DOS header is 64 bytes and holds e_lfanew at offset 0x3C.
@@ -468,22 +473,27 @@ function Get-PEInfo {
         }
     }
     catch {
-        return "Not a valid PE file!"
+        return "Unreadable: $($_.Exception.Message)"
     }
     finally {
-        if ($BinaryReader) { $BinaryReader.Dispose() }
-        if ($FileStream) { $FileStream.Dispose() }
+        if ($BinaryReader) { $BinaryReader.Close() }
+        if ($FileStream) { $FileStream.Close() }
     }
 }
 
 [string]$teststring = [System.Uri]::UnescapeDataString('||strFiles||')
-$filenames = $teststring -split ","
-$filenames | Foreach-Object { 
-    If (Test-Path -LiteralPath $_ -PathType Leaf) {
-        $Arch = Get-PEInfo -filename "$_"
-        Write-Output "$_|$Arch"
-        }
-        else {
-            Write-Output "$_|File not found!"
-        }
- }
+$filenames = $teststring -split ',' | ForEach-Object { $_.Trim() } | Where-Object { $_ -ne '' }
+foreach ($filename in $filenames) {
+    $path = $filename
+    if (-not [Environment]::Is64BitProcess) {
+        # A 32-bit process sees \System32\ redirected to SysWOW64; use Sysnative to reach the 64-bit file.
+        $path = $path -replace '\\System32\\', '\Sysnative\'
+    }
+    if (Test-Path -LiteralPath $path -PathType Leaf) {
+        $Arch = Get-PEInfo -filename $path
+        Write-Output "$filename|$Arch"
+    }
+    else {
+        Write-Output "$filename|File not found!"
+    }
+}
