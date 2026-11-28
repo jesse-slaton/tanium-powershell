@@ -163,9 +163,11 @@ jobs:
           # only the final tree and runs from the PR's own workflow. This reads only git objects of
           # every commit in the range, diffed against the first parent like the gitleaks scan, and
           # runs from the base checkout, so nothing from the change is executed. It fails for any
-          # added or modified file that starts with a UTF-16 byte order mark (FF FE or FE FF), and
-          # for a .ps1, .psm1 or .psd1 file that holds a NUL byte (UTF-16 without a BOM). File
-          # contents are never printed.
+          # added or modified file of ANY type that starts with a UTF-16 byte order mark (FF FE or
+          # FE FF), because secret scanners cannot read UTF-16 in any file, and for a .ps1, .psm1
+          # or .psd1 file that holds a NUL byte (UTF-16 without a BOM; other files such as images
+          # hold NULs legitimately). File contents are never printed, and paths are shell-quoted
+          # (printf %q) so a control character in a name stays on one line.
           blobs="$RUNNER_TEMP/range-blobs.txt"
           : > "$blobs"
           for c in $(git rev-list "$range"); do
@@ -180,7 +182,15 @@ jobs:
                 read -r _ new_mode _ new_sha _ <<< "$meta"
                 # Skip submodule entries (mode 160000); they are not blobs.
                 [ "$new_mode" = "160000" ] && continue
-                printf '%s %s %s\n' "$new_sha" "$c" "$path" >> "$blobs"
+                # Decide ps/other here, while the path is still NUL-delimited and intact. The
+                # record then holds no raw path: a newline in a file name must not split it or
+                # lose the .ps1 association. The escaped name is for messages only.
+                lower=$(printf '%s' "$path" | tr '[:upper:]' '[:lower:]')
+                case "$lower" in
+                  *.ps1 | *.psm1 | *.psd1) kind='ps' ;;
+                  *) kind=other ;;
+                esac
+                printf '%s %s %s %q\n' "$new_sha" "$c" "$kind" "$path" >> "$blobs"
               done
           done
           verdicts="$RUNNER_TEMP/blob-verdicts.txt"
@@ -200,18 +210,13 @@ jobs:
             esac
           done
           utf16_bad=0
-          while read -r blob c path; do
+          while read -r blob c kind path; do
             reason=$(grep "^${blob} " "$verdicts" | head -n1 | cut -d' ' -f2- || true)
             [ -z "$reason" ] && continue
-            lower=$(printf '%s' "$path" | tr '[:upper:]' '[:lower:]')
-            case "$reason" in
-              "NUL byte")
-                case "$lower" in
-                  *.ps1 | *.psm1 | *.psd1) reason="NUL byte in a PowerShell file (UTF-16 without a byte order mark?)" ;;
-                  *) continue ;;
-                esac
-                ;;
-            esac
+            if [ "$reason" = "NUL byte" ]; then
+              [ "$kind" = ps ] || continue
+              reason="NUL byte in a PowerShell file (UTF-16 without a byte order mark?)"
+            fi
             echo "::error::${path} at commit ${c}: ${reason}; PowerShell files must be UTF-8, because secret scanners cannot read UTF-16"
             utf16_bad=1
           done < "$blobs"
