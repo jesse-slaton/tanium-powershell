@@ -6,7 +6,7 @@
 		Tests for an internet conenciton with the same method 
         used by windwos for the Network Connection Status Icon.
         If an internet connection is detected $true is returned,
-        otherwise $null.
+        otherwise $false.
 
 	.EXAMPLE
         Test internet connection
@@ -26,7 +26,7 @@
 	.INPUTS
 
 	.OUTPUTS
-		System.Boolean or NULL
+		System.Boolean
 
 	.NOTES
         See https://technet.microsoft.com/en-us/library/ee126135(v=ws.10).aspx and
@@ -50,7 +50,7 @@ function Test-InternetConnection {
     # Web request test with IP4 
 
     try {
-        if( (Invoke-Webrequest ("http://{0}/{1}" -f (Get-ItemProperty HKLM:\SYSTEM\CurrentControlSet\Services\NlaSvc\Parameters\Internet).ActiveWebProbeHost,
+        if( (Invoke-Webrequest -UseBasicParsing -TimeoutSec 2 -Uri ("http://{0}/{1}" -f (Get-ItemProperty HKLM:\SYSTEM\CurrentControlSet\Services\NlaSvc\Parameters\Internet).ActiveWebProbeHost,
                                                     (Get-ItemProperty HKLM:\SYSTEM\CurrentControlSet\Services\NlaSvc\Parameters\Internet).ActiveWebProbePath)
             ).Content -eq (Get-ItemProperty HKLM:\SYSTEM\CurrentControlSet\Services\NlaSvc\Parameters\Internet).ActiveWebProbeContent ) { 
 
@@ -70,7 +70,7 @@ function Test-InternetConnection {
     # Web request test with IP6 
 
     try {
-        if( (Invoke-Webrequest ("http://{0}/{1}" -f (Get-ItemProperty HKLM:\SYSTEM\CurrentControlSet\Services\NlaSvc\Parameters\Internet).ActiveWebProbeHostV6,
+        if( (Invoke-Webrequest -UseBasicParsing -TimeoutSec 2 -Uri ("http://{0}/{1}" -f (Get-ItemProperty HKLM:\SYSTEM\CurrentControlSet\Services\NlaSvc\Parameters\Internet).ActiveWebProbeHostV6,
                                                     (Get-ItemProperty HKLM:\SYSTEM\CurrentControlSet\Services\NlaSvc\Parameters\Internet).ActiveWebProbePathV6)
             ).Content -eq (Get-ItemProperty HKLM:\SYSTEM\CurrentControlSet\Services\NlaSvc\Parameters\Internet).ActiveWebProbeContentV6 ) { 
 
@@ -122,5 +122,7 @@ function Test-InternetConnection {
     Write-Verbose 'IP6 name resolution failed.'
 
     # Everything failed, thus there is no internet connection
-    return
+    return $false
 }
+
+Test-InternetConnection

@@ -36,7 +36,7 @@
     Imported from jesse-slaton/powershell-utilities at 00676387f42413dc85c8b373791a0364358f6820, from Scripts/Network/GetNETFrameworkVersionScript-Package.ps1.
 #>
 # Get the text from github
-$url = "https://raw.githubusercontent.com/dotnet/docs/master/docs/framework/migration-guide/how-to-determine-which-versions-are-installed.md"
+$url = "https://raw.githubusercontent.com/dotnet/docs/master/docs/framework/install/how-to-determine-which-versions-are-installed.md"
 $md = Invoke-WebRequest $url -UseBasicParsing
 $OFS = "`n"
 # Replace the weird text in the tables, and the padding

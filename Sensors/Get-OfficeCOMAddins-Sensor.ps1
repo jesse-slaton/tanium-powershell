@@ -18,8 +18,8 @@
     sorted and de-duplicated by Product and Name within each hive. Quotes are removed
     and the CSV header line is dropped. Read-only.
 
-    If Platform is missing or has another value, no machine-wide key is chosen and the
-    machine-wide search does not run as intended.
+    If Platform is missing or has another value, the native machine-wide key is chosen
+    as a fallback.
 
 .EXAMPLE
     .\Get-OfficeCOMAddins-Sensor.ps1
@@ -56,6 +56,7 @@ Catch {
 Switch ((Get-ItemProperty $CTRPath -ErrorAction SilentlyContinue).Platform) {
     'x64' { $HKLMPath = "HKLM:\SOFTWARE\Microsoft\Office" }
     'x86' { $HKLMPath = "HKLM:\SOFTWARE\Wow6432Node\Microsoft\Office" }
+    Default { $HKLMPath = "HKLM:\SOFTWARE\Microsoft\Office" }
 }
 $searchScopes = "HKCU:\SOFTWARE\Microsoft\Office", $HKLMPath
 ($searchScopes | ForEach-Object {
@@ -72,4 +73,4 @@ $searchScopes = "HKCU:\SOFTWARE\Microsoft\Office", $HKLMPath
     } | `
             ConvertTo-Csv -Delimiter '|' -NoTypeInformation | `
             Select-Object -Skip 1
-).Replace("`"","")
+) | ForEach-Object { $_.Replace('"', '') }

@@ -13,9 +13,8 @@
         <Path>|Not a valid PE file!
 
     ROM images and unknown magic numbers produce a "ROM File, not supported!" or
-    "Unknown PE file type" message instead, which can be followed by errors. A path
-    that does not exist is reported as "<Path>|File not found!" with Write-Host rather
-    than Write-Output. Read-only.
+    "Unknown PE file type" message instead. A path that does not exist is reported as
+    "<Path>|File not found!". Read-only.
 
 .EXAMPLE
     .\GetBinaryTypeTaniumSensor.ps1
@@ -427,57 +426,64 @@ function Get-PEInfo {
     }
  
  
-    $FileStream = [System.IO.File]::Open($filename, [System.IO.FileMode]::Open, [System.IO.FileAccess]::Read, [System.IO.FileShare]::Read)
- 
-    $BinaryReader = New-Object System.IO.BinaryReader($FileStream)
-    [void]$BinaryReader.BaseStream.Seek(0, [System.IO.SeekOrigin]::Begin)
- 
-    Read-BinaryFile -reader ([ref]$BinaryReader) -Items ([ref]$IMAGE_DOS_HEADER)
- 
-    if ($IMAGE_DOS_HEADER["e_magic"] -eq $IMAGE_DOS_SIGNATURE) {
-        [void]$BinaryReader.BaseStream.Seek($IMAGE_DOS_HEADER["e_lfanew"] + 24, [System.IO.SeekOrigin]::Begin)
-        $magic = $BinaryReader.ReadInt16()
-        [void]$BinaryReader.BaseStream.Seek($IMAGE_DOS_HEADER["e_lfanew"], [System.IO.SeekOrigin]::Begin)
- 
-        $IMAGE_NT_HEADER = New-Object System.Collections.Specialized.OrderedDictionary
-        $IMAGE_NT_HEADER.Add("Signature", [Uint32]0)
-        $IMAGE_NT_HEADER.Add("FileHeader", $IMAGE_FILE_HEADER)
- 
-        switch ($magic) {
-            $IMAGE_NT_OPTIONAL_HDR32_MAGIC { 
-                return "32-bit"
-                $IMAGE_NT_HEADER.Add("OptionalHeader", $IMAGE_OPTIONAL_HEADER) 
-            }
-            $IMAGE_NT_OPTIONAL_HDR64_MAGIC {
-                return "64-bit"
-                $IMAGE_NT_HEADER.Add("OptionalHeader", $IMAGE_OPTIONAL_HEADER64)
-            } 
-            $IMAGE_ROM_OPTIONAL_HDR_MAGIC { "ROM File, not supported!" }
-            default { "Unknown PE file type $($magic)!" } 
+    $FileStream = $null
+    $BinaryReader = $null
+    try {
+        $FileStream = [System.IO.File]::Open($filename, [System.IO.FileMode]::Open, [System.IO.FileAccess]::Read, [System.IO.FileShare]::Read)
+        $BinaryReader = New-Object System.IO.BinaryReader($FileStream)
+
+        # A valid DOS header is 64 bytes and holds e_lfanew at offset 0x3C.
+        if ($FileStream.Length -lt 64) {
+            return "Not a valid PE file!"
         }
-        Read-BinaryFile -reader ([ref]$BinaryReader) -Items ([ref]$IMAGE_NT_HEADER)
- 
+
+        [void]$BinaryReader.BaseStream.Seek(0, [System.IO.SeekOrigin]::Begin)
+        Read-BinaryFile -reader ([ref]$BinaryReader) -Items ([ref]$IMAGE_DOS_HEADER)
+
+        if ($IMAGE_DOS_HEADER["e_magic"] -ne $IMAGE_DOS_SIGNATURE) {
+            return "Not a valid PE file!"
+        }
+
+        # e_lfanew must sit past the DOS header and leave room for the PE signature,
+        # the file header and the optional-header magic.
+        $e_lfanew = [int]$IMAGE_DOS_HEADER["e_lfanew"]
+        if ($e_lfanew -lt 64 -or ($e_lfanew + 26) -gt $FileStream.Length) {
+            return "Not a valid PE file!"
+        }
+
+        # Validate the PE signature ("PE\0\0") before reading the optional-header magic.
+        [void]$BinaryReader.BaseStream.Seek($e_lfanew, [System.IO.SeekOrigin]::Begin)
+        if ($BinaryReader.ReadUInt32() -ne 0x00004550) {
+            return "Not a valid PE file!"
+        }
+
+        [void]$BinaryReader.BaseStream.Seek($e_lfanew + 24, [System.IO.SeekOrigin]::Begin)
+        $magic = $BinaryReader.ReadUInt16()
+
+        switch ($magic) {
+            $IMAGE_NT_OPTIONAL_HDR32_MAGIC { return "32-bit" }
+            $IMAGE_NT_OPTIONAL_HDR64_MAGIC { return "64-bit" }
+            $IMAGE_ROM_OPTIONAL_HDR_MAGIC { return "ROM File, not supported!" }
+            default { return "Unknown PE file type $($magic)!" }
+        }
     }
-    else {
+    catch {
         return "Not a valid PE file!"
     }
- 
-    $dllCharacteristics = Convert-EnumToString -enum ([IMAGE_DLLCHARACTERISTICS]) -value $IMAGE_NT_HEADER["OptionalHeader"]["DllCharacteristics"]
-    $subSystem = [Enum]::Parse([IMAGE_SUBSYSTEM], $IMAGE_NT_HEADER["OptionalHeader"]["Subsystem"])
-    $machine = [Enum]::Parse([IMAGE_FILE_MACHINE], $IMAGE_NT_HEADER["FileHeader"]["Machine"])
-    #Write-Host $machine
-    $BinaryReader.Close()
-    $FileStream.Close()
+    finally {
+        if ($BinaryReader) { $BinaryReader.Dispose() }
+        if ($FileStream) { $FileStream.Dispose() }
+    }
 }
 
 [string]$teststring = [System.Uri]::UnescapeDataString('||strFiles||')
 $filenames = $teststring -split ","
 $filenames | Foreach-Object { 
-    If (Test-Path $_) {
+    If (Test-Path -LiteralPath $_ -PathType Leaf) {
         $Arch = Get-PEInfo -filename "$_"
         Write-Output "$_|$Arch"
         }
         else {
-            Write-Host "$_|File not found!"
+            Write-Output "$_|File not found!"
         }
  }

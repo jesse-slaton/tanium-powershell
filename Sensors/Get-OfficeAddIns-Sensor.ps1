@@ -9,15 +9,17 @@
 
         <Hive>|<Product>|<Architecture>|<Name>|<FriendlyName>|<LoadBehavior>
 
-    Hive is User or Machine, Product is the fifth segment of the registry path (the
-    Office application, for example Excel; for Wow6432Node keys that segment is
-    'Office' instead), Architecture is 32-bit for Wow6432Node keys and 64-bit
-    otherwise, Name is the add-in key name, and LoadBehavior is the LoadBehavior value
-    translated to text (for example "Load at startup (Loaded)"). Add-ins are
+    Hive is User or Machine, Product is the registry path segment immediately before
+    'Addins' (the Office application, for example Excel), Architecture is 32-bit for
+    Wow6432Node keys, 64-bit for the native machine keys, and Unknown for the shared
+    HKCU keys, Name is the add-in key name, and LoadBehavior is the LoadBehavior value
+    translated to text (for example "Load at startup (Loaded)", and 16 is "Load first
+    time, then load on demand (Loaded)"). Add-ins are
     de-duplicated by Name across all three locations, add-ins whose LoadBehavior is
     missing or not in the translation table are left out, quotes are removed, and the
     header line is dropped. The lines are written sorted. If nothing is found the
-    script writes nothing. Read-only.
+    script writes nothing. If emitting the results fails, the script writes one
+    "Error: <message>" line. Read-only.
 
 .EXAMPLE
     .\Get-OfficeAddIns-Sensor.ps1
@@ -44,7 +46,7 @@ $LoadBehaviorHashTable = @{
     3  = "Load at startup (Loaded)";
     8  = "Load on demand (Unloaded)";
     9  = "Load on demand (Loaded)";
-    16 = "Load on demand (Loaded)";
+    16 = "Load first time, then load on demand (Loaded)";
 }
 
 Try {
@@ -65,8 +67,8 @@ $ArrayofOfficeAddins = $searchScopes | `
         ForEach-Object { Get-ChildItem -Path $_ -ErrorAction SilentlyContinue -Recurse | `
                 ForEach-Object { Get-ItemProperty -Path $_.PSPath } | `
                     Select-Object @{n = "Hive"; e = { if ($_.PSParentPath -match '_USER') {'User'} else {'Machine'} } }`
-                    , @{n = "Product"; e = { ((Convert-Path $_.PSParentPath) -split '\\')[4] } } `
-                    , @{n = "Architecture"; e = { if ($_.PSPath -match 'Wow6432Node') { '32-bit' } else { '64-bit' } } }`
+                    , @{n = "Product"; e = { $Segments = (Convert-Path $_.PSParentPath) -split '\\'; $Segments[[array]::IndexOf($Segments, 'Addins') - 1] } }`
+                    , @{n = "Architecture"; e = { if ($_.PSPath -match 'Wow6432Node') { '32-bit' } elseif ($_.PSPath -match '_USER') { 'Unknown' } else { '64-bit' } } }`
                     , @{n = "Name"; e = { Split-Path $_.PSPath -Leaf } } `
                     , FriendlyName `
                     , @{n = "LoadBehavior"; e = { $LoadBehaviorHashTable.($_.LoadBehavior) } } `
@@ -77,6 +79,5 @@ Try {
     $CSV[1..($CSV.Length)] | Sort-Object 
 }
 Catch {
-    #Write-Error $_.Exception.Message -ErrorAction Stop
-    #[Environment]::Exit($_.Exception.HResult)   
+    Write-Output "Error: $($_.Exception.Message)"
 }
