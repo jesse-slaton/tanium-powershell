@@ -58,8 +58,9 @@ test stub, and records the removal in `ARCHIVED.md`.
   this issue, records the commit SHA this part runs from (the last commit that still contains the
   files), and a `Path | What it did` table (descriptions from `INVENTORY.md`), noting each file can
   be restored with `git show <sha>:"<path>"`.
-- No remaining file references a removed script by its old path (grep the repo for each archived path;
-  the only matches may be in `ARCHIVED.md` itself).
+- No remaining script, test, docs page or README references a removed script by its old path. Grep
+  the repository for each archived path and allow matches only in `ARCHIVED.md`, `INVENTORY.md` and
+  `INVENTORY-FOLLOWUPS.md`, which keep the record on purpose.
 - The Pester suite still passes after the moves and removals.
 
 ### Archive part 2 of 2
@@ -94,8 +95,9 @@ test stub, and records the removal in `ARCHIVED.md`.
 - Each script's docs page and test stub (listed above) are removed with it.
 - Append to `ARCHIVED.md` a dated section that names this issue, records the commit SHA this part
   runs from, and a `Path | What it did` table with the same `git show <sha>:"<path>"` restore note.
-- No remaining file references a removed script by its old path (grep the repo for each archived path;
-  the only matches may be in `ARCHIVED.md` itself).
+- No remaining script, test, docs page or README references a removed script by its old path. Grep
+  the repository for each archived path and allow matches only in `ARCHIVED.md`, `INVENTORY.md` and
+  `INVENTORY-FOLLOWUPS.md`, which keep the record on purpose.
 - The Pester suite still passes after the moves and removals.
 
 
