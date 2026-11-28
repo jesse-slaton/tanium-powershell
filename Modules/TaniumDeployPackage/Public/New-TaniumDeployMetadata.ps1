@@ -84,7 +84,7 @@ function New-TaniumDeployMetadata {
     $osShort = Get-CompactOSName -String $Update.Title
     $arch = Get-ArchitectureFromString -String $Update.Title
 
-    # Create compact self-service name (≤25 chars): "KB5066835 Win11 x64"
+    # Create compact self-service name (<=25 chars): "KB5066835 Win11 x64"
     $selfServiceName = "$KB $osShort $arch"
 
     # Microsoft Support KB URL

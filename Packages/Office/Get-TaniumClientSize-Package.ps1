@@ -6,10 +6,10 @@ function Get-TaniumClientSize {
         [switch]$Recurse
     )
     if ($Recurse.IsPresent) {
-        $SizeInGb = ((Get-ChildItem –Force -Path $Path –Recurse -ErrorAction SilentlyContinue| Measure-Object -Property Length -Sum).sum / 1Gb)
+        $SizeInGb = ((Get-ChildItem -Force -Path $Path -Recurse -ErrorAction SilentlyContinue| Measure-Object -Property Length -Sum).sum / 1Gb)
     }
     else {
-        $SizeInGb = ((Get-ChildItem –Force -Path $Path -ErrorAction SilentlyContinue| Measure-Object -Property Length -Sum).sum / 1Gb)
+        $SizeInGb = ((Get-ChildItem -Force -Path $Path -ErrorAction SilentlyContinue| Measure-Object -Property Length -Sum).sum / 1Gb)
     }
     $Properties = @{ 
         Path = $Path
