@@ -37,6 +37,7 @@
 
 
 function Update-Sysinternals {
+    [CmdletBinding(SupportsShouldProcess = $true)]
     param (
         $NewPath = "https://live.sysinternals.com/Files/SysinternalsSuite.zip",
         $OldPath = "$Env:Temp\SysinternalsSuite.zip",
@@ -49,7 +50,9 @@ function Update-Sysinternals {
     try {
 
         # Download the new zip file of tools.
-        Invoke-WebRequest -UseBasicParsing -Uri $NewPath -OutFile $OldPath -Method Get -Verbose
+        if ($PSCmdlet.ShouldProcess($NewPath, 'Download Sysinternals Suite')) {
+            Invoke-WebRequest -UseBasicParsing -Uri $NewPath -OutFile $OldPath -Method Get -Verbose
+        }
 
         # Some Sysinternals apps are often locked, so stop them before replacing files.
         # Match exact process names: a wildcard such as desktops* would also match unrelated
@@ -60,13 +63,15 @@ function Update-Sysinternals {
 
         # Capture the restart details before each process exits, then stop it.
         foreach ($Process in $Running) {
-            $Stopped += [pscustomobject]@{
-                Name = $Process.Name
-                Path = $Process.Path
-                Id   = $Process.Id
+            if ($PSCmdlet.ShouldProcess($Process.Name, 'Stop process')) {
+                $Stopped += [pscustomobject]@{
+                    Name = $Process.Name
+                    Path = $Process.Path
+                    Id   = $Process.Id
+                }
+                # SilentlyContinue because the process may have exited between listing and stopping it.
+                Stop-Process -Id $Process.Id -Force -Verbose -ErrorAction SilentlyContinue
             }
-            # SilentlyContinue because the process may have exited between listing and stopping it.
-            Stop-Process -Id $Process.Id -Force -Verbose -ErrorAction SilentlyContinue
         }
 
         # Wait for each stopped process to actually exit before replacing its files. Only a
@@ -92,7 +97,9 @@ function Update-Sysinternals {
         }
 
         # Expand the downloaded zip into the install root, overwriting existing files.
-        Expand-Archive -LiteralPath $OldPath -DestinationPath $BaseDir -Force
+        if ($PSCmdlet.ShouldProcess($BaseDir, 'Extract Sysinternals Suite')) {
+            Expand-Archive -LiteralPath $OldPath -DestinationPath $BaseDir -Force
+        }
     }
     catch {
         Write-Error "Failed to update Sysinternals: $($_.Exception.Message)"
@@ -101,15 +108,34 @@ function Update-Sysinternals {
     finally {
 
         # Restart the applications that were confirmed gone, except *64 binaries and
-        # except any executable outside $BaseDir (never restart a user-writable path).
+        # except any executable outside $BaseDir. Before each elevated restart, verify
+        # the trust boundary: the ACL of $BaseDir and of the executable must not grant
+        # write-class rights to a non-trusted principal (see Test-TrustedRestartPath).
+        $BaseDirTrust = $null
         foreach ($Process in $Restartable) {
             if ($Process.Name -notlike '*64' -and $Process.Path -like "$BaseDir\*") {
-                try {
-                    Start-Process -FilePath $Process.Path
+                if ($null -eq $BaseDirTrust) {
+                    $BaseDirTrust = Test-TrustedRestartPath -Path $BaseDir
                 }
-                catch {
-                    # A failed restart must not skip the remaining restarts or the exit code.
-                    Write-Warning "Failed to restart $($Process.Name): $($_.Exception.Message)"
+                if (-not $BaseDirTrust.Trusted) {
+                    Write-Error "Refusing to restart $($Process.Name): $BaseDir untrusted ($($BaseDirTrust.Reason))."
+                    $Failed = $true
+                    continue
+                }
+                $ExeTrust = Test-TrustedRestartPath -Path $Process.Path
+                if (-not $ExeTrust.Trusted) {
+                    Write-Error "Refusing to restart $($Process.Name): $($Process.Path) untrusted ($($ExeTrust.Reason))."
+                    $Failed = $true
+                    continue
+                }
+                if ($PSCmdlet.ShouldProcess($Process.Path, 'Restart')) {
+                    try {
+                        Start-Process -FilePath $Process.Path
+                    }
+                    catch {
+                        # A failed restart must not skip the remaining restarts or the exit code.
+                        Write-Warning "Failed to restart $($Process.Name): $($_.Exception.Message)"
+                    }
                 }
             }
         }
@@ -117,6 +143,60 @@ function Update-Sysinternals {
     if ($Failed) {
         exit 1
     }
+}
+
+# Verify the trust boundary of a path before restarting an executable from it.
+#
+# Trust rule: the path is trusted only when no Allow access rule grants a write-class
+# right (Write, Modify, FullControl, CreateFiles, or AppendData) to a principal other
+# than BUILTIN\Administrators, NT AUTHORITY\SYSTEM, or NT SERVICE\TrustedInstaller. Such
+# write access would let a non-trusted principal replace the executable, so an elevated
+# restart must not run it. This only reads the ACL; it never changes it.
+function Test-TrustedRestartPath {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Path
+    )
+
+    $TrustedPrincipals = @(
+        'BUILTIN\Administrators'
+        'NT AUTHORITY\SYSTEM'
+        'NT SERVICE\TrustedInstaller'
+    )
+    $WriteRights = @(
+        [System.Security.AccessControl.FileSystemRights]::Write
+        [System.Security.AccessControl.FileSystemRights]::Modify
+        [System.Security.AccessControl.FileSystemRights]::FullControl
+        [System.Security.AccessControl.FileSystemRights]::CreateFiles
+        [System.Security.AccessControl.FileSystemRights]::AppendData
+    )
+
+    if (-not (Test-Path -LiteralPath $Path)) {
+        return [pscustomobject]@{ Trusted = $false; Path = $Path; Reason = 'path not found' }
+    }
+
+    $Acl = Get-Acl -LiteralPath $Path
+    foreach ($Rule in $Acl.Access) {
+        if ($Rule.AccessControlType -ne [System.Security.AccessControl.AccessControlType]::Allow) {
+            continue
+        }
+        $Identity = $Rule.IdentityReference.Value
+        if ($TrustedPrincipals -contains $Identity) {
+            continue
+        }
+        $Rights = [System.Security.AccessControl.FileSystemRights]$Rule.FileSystemRights
+        foreach ($Right in $WriteRights) {
+            if (($Rights -band $Right) -eq $Right) {
+                return [pscustomobject]@{
+                    Trusted = $false
+                    Path    = $Path
+                    Reason  = "writable by untrusted principal '$Identity'"
+                }
+            }
+        }
+    }
+
+    return [pscustomobject]@{ Trusted = $true; Path = $Path; Reason = '' }
 }
 
 Update-Sysinternals

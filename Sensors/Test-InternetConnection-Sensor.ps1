@@ -7,10 +7,10 @@
 .DESCRIPTION
     Tests for an internet connection using the same method Windows uses for the
     Network Connection Status icon. If an internet connection is detected, $true is
-    returned; otherwise $false is returned. The two web probes are bounded to a
-    two-second timeout each; the two DNS lookups (Resolve-DnsName -DnsOnly) have no
-    timeout, and -DnsOnly only skips LLMNR and NetBIOS, so an offline run can still
-    block on an unbounded DNS lookup before returning $false.
+    returned; otherwise $false is returned. Each web probe sets a two-second timeout
+    (-TimeoutSec 2), but DNS resolution inside Invoke-WebRequest can take longer on
+    Windows PowerShell 5.1, and the two Resolve-DnsName lookups have no timeout, so the
+    run is not strictly bounded; -DnsOnly only skips LLMNR and NetBIOS.
 
 .EXAMPLE
     Test internet connection
@@ -37,9 +37,10 @@
         http://blogs.technet.com/b/networking/archive/2012/12/20/the-network-connection-status-icon.aspx and
         HKLM:\SYSTEM\CurrentControlSet\Services\NlaSvc\Parameters\Internet
     for the description of the mechanism.
-    When offline, the worst case is two web requests bounded to two seconds each, then
-    two DNS lookups that are not bounded (Resolve-DnsName has no timeout and -DnsOnly
-    only skips LLMNR and NetBIOS).
+    When offline, the worst case is two web requests set to a two-second timeout each,
+    plus DNS resolution inside those requests (which can take longer on Windows
+    PowerShell 5.1), then two Resolve-DnsName lookups that have no timeout; -DnsOnly
+    only skips LLMNR and NetBIOS. The run is not strictly bounded.
     VERSION 1.0.0, 7.2.2016
     Imported from jesse-slaton/powershell-utilities at 00676387f42413dc85c8b373791a0364358f6820, from Scripts/General/Test-InternetConnection-Sensor.ps1.
 

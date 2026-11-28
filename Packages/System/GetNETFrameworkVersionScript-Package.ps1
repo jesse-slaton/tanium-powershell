@@ -47,17 +47,18 @@ catch {
     throw "Failed to download the .NET Framework version table from $url : $($_.Exception.Message)"
 }
 $OFS = "`n"
-# Replace the weird text in the tables, and the padding
-# Then trim the | off the front and end of lines
-$map = $md -split "`n" -replace " installed [^|]+" -replace "\s+\|" -replace "\|$" |
-# Then we can build the table by looking for unique lines that start with ".NET Framework"
-Select-String "^.NET" | Select-Object -Unique |
-# And flip it so it's key = value
-# And convert ".NET FRAMEWORK 4.5.2" to  [version]4.5.2
-ForEach-Object { 
-    [version]$v, [int]$k = $_ -replace "\.NET Framework " -split "\|"
-    "    $k = [version]'$v'"
-}
+# The version table lists one ".NET Framework <version>" per row with its Release
+# value(s) in **bold** (a version has several OS-specific Release values). Match the
+# data rows directly (skipping the Markdown cell delimiters and the header/separator
+# rows), then emit one "<release> = [version]'<version>'" line per Release value.
+$map = $md -split "`n" |
+    Where-Object { $_ -match '\.NET Framework\s+\d' } |
+    ForEach-Object {
+        $version = ([regex]::Match($_, '\.NET Framework\s+(\d+(?:\.\d+)*)')).Groups[1].Value
+        [regex]::Matches($_, '\*\*(\d+)\*\*') | ForEach-Object {
+            "    $($_.Groups[1].Value) = [version]'$version'"
+        }
+    }
 
 if (-not $map) {
     # An empty lookup means the page changed or returned nothing; do not emit a plausible empty script.

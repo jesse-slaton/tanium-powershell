@@ -473,7 +473,21 @@ function Get-PEInfo {
             default { return "Unknown PE file type $($magic)!" }
         }
     }
+    catch [System.IO.EndOfStreamException] {
+        # The file shrank or is truncated, so a read ran off the end: the image is
+        # incomplete, not unreadable.
+        return "Not a valid PE file!"
+    }
+    catch [System.IO.IOException] {
+        # An IOException is either a short read (truncated file) or a sharing failure
+        # (locked file); distinguish by message rather than conflating the two.
+        if ($_.Exception.Message -match 'end of (the )?stream|beyond the end|past the end|short read|not enough bytes') {
+            return "Not a valid PE file!"
+        }
+        return "Unreadable: $($_.Exception.Message)"
+    }
     catch {
+        # Access denied (UnauthorizedAccessException) or any other failure is unreadable.
         return "Unreadable: $($_.Exception.Message)"
     }
     finally {

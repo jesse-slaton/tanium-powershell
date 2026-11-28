@@ -77,7 +77,7 @@ foreach ($scope in $searchScopes) {
 }
 
 $Addins = $addinKeys |
-    Where-Object { ($_.Name -like "*Addins*") -and ($_.ValueCount -gt 0) } |
+    Where-Object { ($_.PSPath -like '*\Addins\*') -and ($_.ValueCount -gt 0) } |
     ForEach-Object { Get-ItemProperty -Path $_.PSPath } |
     Select-Object @{n = "Name"; e = { Split-Path $_.PSPath -leaf } },
         @{n = "Product"; e = { (($_.PSPath -split '\\')[0, -3])[1] } },
