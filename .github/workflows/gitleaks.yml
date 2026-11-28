@@ -5,7 +5,7 @@ name: Gitleaks
 # That event is safe here because no PR code ever runs: the PR's commits are fetched as git objects
 # and only read by gitleaks, never checked out, built or executed. The token is read-only
 # (contents: read), no secret is used, and the rules come from the base (see .gitleaks.toml).
-on:
+on: # zizmor: ignore[dangerous-triggers] no PR code is checked out or run, only read as git objects, see the note above
   pull_request_target:
   push:
     branches: [main]
@@ -34,7 +34,8 @@ jobs:
     permissions:
       contents: read
     steps:
-      # Checks out the default branch tip (for a PR) or the pushed commit, never the PR head.
+      # Checks out the base branch tip (GITHUB_SHA under pull_request_target) or the pushed commit,
+      # never the PR head.
       - name: Check out
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:

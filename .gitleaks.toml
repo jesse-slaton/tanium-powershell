@@ -14,23 +14,23 @@
 useDefault = true
 
 # SECURITY.md shows an intentionally vulnerable example next to its safer replacement. Pinned to
-# that file and that one value, so a real password literal anywhere else is still reported.
+# that file and that exact value (whole-match anchors), so a real password literal anywhere else is still reported.
 [[allowlists]]
 description = "Example password in the SECURITY.md vulnerable-code sample"
 targetRules = ["password-assignment-literal"]
 condition = "AND"
-paths = ['''^SECURITY\.md$''']
-regexes = ['''P@ssw0rd123''']
+paths = ['''(?:^|/)SECURITY\.md$''']
+regexes = ['''^P@ssw0rd123$''']
 
 # The Win10 upgrade package passes Microsoft's published generic volume-license setup key for the
 # Enterprise SKU (the KMS client setup keys page is linked in the script). It is public, not a
-# secret. Pinned to this file name (the file has moved folders) and this one key.
+# secret. Pinned to this file name (the file has moved folders) and this exact key (whole-match anchors).
 [[allowlists]]
 description = "Public Microsoft KMS client setup key in the Win10 upgrade package"
 targetRules = ["generic-api-key"]
 condition = "AND"
 paths = ['''(?:^|/)Invoke-Win10Upgrade-Package\.ps1$''']
-regexes = ['''NPPR9-FWDCX-D2C8J-H872K-2YT43''']
+regexes = ['''^NPPR9-FWDCX-D2C8J-H872K-2YT43$''']
 
 [[rules]]
 id = "connection-string-password"

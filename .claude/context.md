@@ -46,6 +46,7 @@ The repository owner requires assistance with:
 4. Run PSScriptAnalyzer before committing
 5. Use feature branches for changes
 6. Documentation changes go through the same review process as code
+7. Save PowerShell files as UTF-8 (with a BOM when non-ASCII), never UTF-16; pull requests are scanned for credentials (see README Contributing)
 
 ## Coding Standards
 
