@@ -10,13 +10,14 @@
     $env:TEMP\SysinternalsSuite.zip, stops any running ZoomIt, ZoomIt64, Desktops,
     procexp and procexp64 processes, waits for each stopped process to exit, expands the
     zip into C:\Bin overwriting existing files, then restarts the stopped programs
-    (except those whose process name ends in 64) whose executable lives under C:\Bin. It
-    never restarts a path outside the install root. The downloaded zip is left in
-    $env:TEMP.
+    (except those whose process name ends in 64) whose executable lives under C:\Bin and
+    that were confirmed to have exited. It never restarts a path outside the install
+    root. The downloaded zip is left in $env:TEMP.
 
-    A failed download or extraction writes an error and exits non-zero, and the
-    processes that were stopped are still restarted by the recovery scope before the
-    exit. Invoke-WebRequest and Stop-Process write verbose messages.
+    A process that survives Stop-Process aborts the run before extraction with an error
+    and a non-zero exit. A failed download or extraction also writes an error and exits
+    non-zero, and the processes confirmed gone are still restarted by the recovery scope
+    before the exit. Invoke-WebRequest and Stop-Process write verbose messages.
 
     The script takes no parameters. The function's -NewPath, -OldPath and -BaseDir
     parameters are only reachable by editing the call at the end of the script.
@@ -43,6 +44,7 @@ function Update-Sysinternals {
     )
 
     $Stopped = @()
+    $Restartable = @()
     $Failed = $false
     try {
 
@@ -56,8 +58,7 @@ function Update-Sysinternals {
         # reports as a "cannot find a process" error.
         $Running = Get-Process -Name ZoomIt, ZoomIt64, Desktops, procexp, procexp64 -ErrorAction SilentlyContinue
 
-        # Capture the restart details before each process exits, then stop it. Every process
-        # we stop is tracked so it is restarted below even if a later step fails.
+        # Capture the restart details before each process exits, then stop it.
         foreach ($Process in $Running) {
             $Stopped += [pscustomobject]@{
                 Name = $Process.Name
@@ -68,16 +69,26 @@ function Update-Sysinternals {
             Stop-Process -Id $Process.Id -Force -Verbose -ErrorAction SilentlyContinue
         }
 
-        # Wait for each stopped process to actually exit before replacing its files. A process
-        # that is still draining is still "stopped"; HasExited reports whether the wait finished.
+        # Wait for each stopped process to actually exit before replacing its files. Only a
+        # process confirmed gone is marked for restart: a survivor still holds its executable,
+        # so expanding the zip over it would fail, and restarting it would spawn a second
+        # instance.
+        $Survivors = @()
         foreach ($Process in $Stopped) {
             # SilentlyContinue because Wait-Process reports an error if the process is already gone.
             Wait-Process -Id $Process.Id -Timeout 10 -ErrorAction SilentlyContinue
             # SilentlyContinue because the process is gone after a successful wait.
             $Remaining = Get-Process -Id $Process.Id -ErrorAction SilentlyContinue
             if ($Remaining -and -not $Remaining.HasExited) {
-                Write-Warning "Process $($Process.Name) (PID $($Process.Id)) is still running after Stop-Process."
+                $Survivors += $Process
             }
+            else {
+                $Restartable += $Process
+            }
+        }
+        if ($Survivors.Count -gt 0) {
+            $survivorNames = ($Survivors | ForEach-Object { "$($_.Name) (PID $($_.Id))" }) -join ', '
+            throw "Process(es) still running after Stop-Process: $survivorNames"
         }
 
         # Expand the downloaded zip into the install root, overwriting existing files.
@@ -89,11 +100,17 @@ function Update-Sysinternals {
     }
     finally {
 
-        # Restart the applications that were running previously, except *64 binaries
-        # and except any executable outside $BaseDir (never restart a user-writable path).
-        foreach ($Process in $Stopped) {
+        # Restart the applications that were confirmed gone, except *64 binaries and
+        # except any executable outside $BaseDir (never restart a user-writable path).
+        foreach ($Process in $Restartable) {
             if ($Process.Name -notlike '*64' -and $Process.Path -like "$BaseDir\*") {
-                Start-Process -FilePath $Process.Path
+                try {
+                    Start-Process -FilePath $Process.Path
+                }
+                catch {
+                    # A failed restart must not skip the remaining restarts or the exit code.
+                    Write-Warning "Failed to restart $($Process.Name): $($_.Exception.Message)"
+                }
             }
         }
     }

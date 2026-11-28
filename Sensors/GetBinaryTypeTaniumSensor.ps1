@@ -18,8 +18,9 @@
     "Unknown PE file type" message instead. A path that does not exist is reported as
     "<Path>|File not found!". A path that exists but cannot be opened (access denied or
     locked by another process) is reported as "<Path>|Unreadable: <reason>". When the
-    script runs in a 32-bit process, a requested \System32\ path is redirected to
-    \Sysnative\ so the 64-bit file is read. Read-only.
+    script runs in a 32-bit process on 64-bit Windows, a path under
+    $env:windir\System32\ is redirected to the Sysnative alias so the 64-bit file is
+    read. Read-only.
 
 .EXAMPLE
     .\GetBinaryTypeTaniumSensor.ps1
@@ -451,7 +452,7 @@ function Get-PEInfo {
 
         # e_lfanew must sit past the DOS header and leave room for the PE signature,
         # the file header and the optional-header magic.
-        $e_lfanew = [int]$IMAGE_DOS_HEADER["e_lfanew"]
+        $e_lfanew = [long]$IMAGE_DOS_HEADER["e_lfanew"]
         if ($e_lfanew -lt 64 -or ($e_lfanew + 26) -gt $FileStream.Length) {
             return "Not a valid PE file!"
         }
@@ -485,9 +486,15 @@ function Get-PEInfo {
 $filenames = $teststring -split ',' | ForEach-Object { $_.Trim() } | Where-Object { $_ -ne '' }
 foreach ($filename in $filenames) {
     $path = $filename
-    if (-not [Environment]::Is64BitProcess) {
-        # A 32-bit process sees \System32\ redirected to SysWOW64; use Sysnative to reach the 64-bit file.
-        $path = $path -replace '\\System32\\', '\Sysnative\'
+    if (-not [Environment]::Is64BitProcess -and [Environment]::Is64BitOperatingSystem) {
+        # A 32-bit process on 64-bit Windows reads $env:windir\System32 through the
+        # SysWOW64 redirection; Sysnative reaches the 64-bit file. Rewrite only the
+        # actual $env:windir\System32 prefix, never a \System32\ segment elsewhere (a
+        # UNC path or a folder named System32 under another root must not be touched).
+        $system32 = "$env:windir\System32\"
+        if ($path.StartsWith($system32, [System.StringComparison]::OrdinalIgnoreCase)) {
+            $path = "$env:windir\Sysnative\" + $path.Substring($system32.Length)
+        }
     }
     if (Test-Path -LiteralPath $path -PathType Leaf) {
         $Arch = Get-PEInfo -filename $path

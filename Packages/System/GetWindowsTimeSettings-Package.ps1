@@ -67,8 +67,10 @@ function ConvertToFriendlyTime {
 # Read the configured time server. This script only reads these values; it does not set or configure them.
 $NtpServerValue = (Get-ItemProperty -Path HKLM:\SYSTEM\CurrentControlSet\Services\W32Time\Parameters -Name NtpServer).NtpServer
 
-# Read the configured poll interval (seconds) and convert it to a friendly string.
-$Interval = ConvertToFriendlyTime -Seconds $(Get-ItemProperty -Path HKLM:\SYSTEM\CurrentControlSet\Services\W32Time\TimeProviders\NtpClient -Name SpecialPollInterval).SpecialPollInterval
+# Read the configured poll interval (seconds) and convert it to a friendly string. A
+# missing value yields an empty column rather than "0 seconds" or a Get-ItemProperty error.
+$SpecialPollInterval = (Get-ItemProperty -Path HKLM:\SYSTEM\CurrentControlSet\Services\W32Time\TimeProviders\NtpClient -Name SpecialPollInterval -ErrorAction SilentlyContinue).SpecialPollInterval
+$Interval = if ($null -ne $SpecialPollInterval) { ConvertToFriendlyTime -Seconds $SpecialPollInterval } else { '' }
 $ServiceStatus = (Get-Service -Name w32time).Status
 
 # The NtpServer value can list several peers separated by spaces, each "host,flags". Split on

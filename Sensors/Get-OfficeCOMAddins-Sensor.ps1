@@ -21,8 +21,8 @@
     and the CSV header line is dropped. Read-only.
 
     If Platform is missing or has another value, the native machine-wide key is chosen
-    as a fallback. If emitting the results fails, the script writes one
-    "Error: <message>" line.
+    as a fallback. If no add-in key could be read, or if emitting the results fails,
+    the script writes one "Error: <message>" line.
 
 .EXAMPLE
     .\Get-OfficeCOMAddins-Sensor.ps1
@@ -64,14 +64,16 @@ Switch ((Get-ItemProperty $CTRPath -ErrorAction SilentlyContinue).Platform) {
 }
 $searchScopes = "HKCU:\SOFTWARE\Microsoft\Office", $HKLMPath
 
-$addinKeys = foreach ($scope in $searchScopes) {
-    try {
-        Get-ChildItem -Path $scope -Recurse -ErrorAction Stop
-    }
-    catch {
-        # This hive is not present on this machine; it has no add-ins to report.
+$addinKeys = @()
+$readErrors = @()
+foreach ($scope in $searchScopes) {
+    if (-not (Test-Path -LiteralPath $scope)) {
+        # The hive is absent on this machine; there are no add-ins to report for it.
         continue
     }
+    # A single denied subkey is skipped, not fatal: -ErrorAction SilentlyContinue keeps
+    # the recursion going so one unreadable key does not silently drop later add-ins.
+    $addinKeys += @(Get-ChildItem -LiteralPath $scope -Recurse -ErrorAction SilentlyContinue -ErrorVariable +readErrors)
 }
 
 $Addins = $addinKeys |
@@ -84,6 +86,12 @@ $Addins = $addinKeys |
         @{n = "Load Behavior Description"; e = { $LoadBehaviorHash.$($_.Loadbehavior) } } |
     Where-Object { $null -ne $_.Loadbehavior } |
     Sort-Object -Property Product, Name -Unique
+
+if ($readErrors.Count -gt 0 -and $addinKeys.Count -eq 0) {
+    # Nothing at all could be read (every present hive was denied); report it rather
+    # than silently emitting an empty inventory.
+    Write-Output "Error: $($readErrors[0].Exception.Message)"
+}
 
 try {
     $Addins |

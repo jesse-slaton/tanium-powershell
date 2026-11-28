@@ -16,8 +16,9 @@
       a captive portal)
     - reads the IP-enabled adapters from Win32_NetworkAdapterConfiguration and computes
       the network address of each IPv4 adapter's first address, then keeps the adapter
-      with the lowest GatewayCostMetric. Adapters with no IPv4 address or no default
-      gateway are skipped.
+      with the lowest GatewayCostMetric (a metric of 0, an automatic estimate, is
+      treated as the largest). Adapters with no IPv4 address or no default gateway are
+      skipped.
 
     Writes one line:
 
@@ -53,8 +54,8 @@ catch {
 
 try {
     $ResolvedDNSHost = Resolve-DnsName -Name $NCSIDNSAddress -DnsOnly -Type A -ErrorAction Stop
-    $ResolvedDNSHostname = $ResolvedDNSHost.Name
-    $ResolvedDNSIPAddress = $ResolvedDNSHost.ipaddress
+    $ResolvedDNSHostname = @($ResolvedDNSHost)[0].Name
+    $ResolvedDNSIPAddress = $ResolvedDNSHost.ipaddress -join "|"
 }
 catch {
     # A failed DNS lookup still yields defined (empty) columns, not a crash or a blank row.
@@ -117,6 +118,11 @@ foreach ($Network in $Networks) {
         continue
     }
     $RouteCostMetric = [int]$GatewayMetric
+    if ($RouteCostMetric -eq 0) {
+        # A metric of 0 is an automatic estimate, not the best route; treat it as the
+        # largest cost so any explicit metric wins.
+        $RouteCostMetric = [int]::MaxValue
+    }
     $OutputObj += [pscustomobject]@{
         IPAddress       = $IPAddress
         SubnetMask      = $SubnetMask
