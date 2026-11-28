@@ -149,9 +149,11 @@ jobs:
           # added in a merge commit would not be scanned.
           log_opts="--diff-merges=first-parent ${range}"
 
+          # --verbose prints each finding's rule ID, file, line and commit; without it a failure
+          # says only "leaks found". --redact masks the secret value in that output.
           run_scan() {
             echo "Scanning: git log ${log_opts} (rules: $1)"
-            gitleaks git --no-banner --redact --exit-code 1 \
+            gitleaks git --no-banner --verbose --redact --exit-code 1 \
               --config "$2" --ignore-gitleaks-allow --gitleaks-ignore-path "$ignore" \
               --log-opts="${log_opts}" .
           }
@@ -163,11 +165,12 @@ jobs:
           # only the final tree and runs from the PR's own workflow. This reads only git objects of
           # every commit in the range, diffed against the first parent like the gitleaks scan, and
           # runs from the base checkout, so nothing from the change is executed. It fails for any
-          # added or modified file of ANY type that starts with a UTF-16 byte order mark (FF FE or
-          # FE FF), because secret scanners cannot read UTF-16 in any file, and for a .ps1, .psm1
-          # or .psd1 file that holds a NUL byte (UTF-16 without a BOM; other files such as images
-          # hold NULs legitimately). File contents are never printed, and paths are shell-quoted
-          # (printf %q) so a control character in a name stays on one line.
+          # added, modified or type-changed file (for example a symlink replaced by a regular file)
+          # of ANY type that starts with a UTF-16 byte order mark (FF FE or FE FF), because secret
+          # scanners cannot read UTF-16 in any file, and for a .ps1, .psm1 or .psd1 file that holds
+          # a NUL byte (UTF-16 without a BOM; other files such as images hold NULs legitimately).
+          # File contents are never printed, and paths are shell-quoted (printf %q) so a control
+          # character in a name stays on one line.
           blobs="$RUNNER_TEMP/range-blobs.txt"
           : > "$blobs"
           for c in $(git rev-list "$range"); do
@@ -176,7 +179,7 @@ jobs:
             else
               tree_args=(--root "$c")
             fi
-            git diff-tree -r -z --no-commit-id --no-renames --diff-filter=AM "${tree_args[@]}" |
+            git diff-tree -r -z --no-commit-id --no-renames --diff-filter=AMT "${tree_args[@]}" |
               while IFS= read -r -d '' meta && IFS= read -r -d '' path; do
                 # meta is ":<old mode> <new mode> <old sha> <new sha> <status>"
                 read -r _ new_mode _ new_sha _ <<< "$meta"
